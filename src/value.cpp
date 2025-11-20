@@ -132,9 +132,7 @@ Rational::Rational(int num, int den) : ValueBase(V_RATIONAL) {
     if (den == 0) {
         throw std::runtime_error("Division by zero");
     }
-    if (num == 0) {
-        return 0;
-    }
+
     // Simplify the fraction
     int g = gcd(num, den);
     numerator = num / g;

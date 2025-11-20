@@ -15,7 +15,6 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <algorithm>
 
 #define mp make_pair
 using std::string;
@@ -29,7 +28,7 @@ extern std::map<std::string, ExprType> reserved_words;
 /**
  * @brief Helper function: Parse list of syntax nodes to vector of Expr (for parameters/body)
  */
-vector<Expr> parse_expr_list(const vector<std::shared_ptr<Syntax>>& stxs, Assoc &env) {
+vector<Expr> parse_expr_list(const vector<Syntax>& stxs, Assoc &env) {
     vector<Expr> exprs;
     for (const auto& stx : stxs) {
         exprs.push_back(stx->parse(env));
@@ -40,21 +39,24 @@ vector<Expr> parse_expr_list(const vector<std::shared_ptr<Syntax>>& stxs, Assoc 
 /**
  * @brief Helper function: Parse lambda parameter list (Syntax List → vector<string>)
  */
-vector<string> parse_lambda_params(const std::shared_ptr<Syntax>& param_stx, Assoc &env) {
+vector<string> parse_lambda_params(const std::vector<Syntax>& param_stx, Assoc &env) {
     vector<string> params;
-    List* param_list = dynamic_cast<List*>(param_stx.get());
-    if (!param_list) {
-        // Single parameter (e.g., (lambda x x) → params = {"x"})
-        SymbolSyntax* single_param = dynamic_cast<SymbolSyntax*>(param_stx.get());
-        if (single_param) {
-            params.push_back(single_param->s);
-            return params;
-        }
-        throw RuntimeError("Invalid lambda parameter list");
-    }
+
+    //WARNING: 根据定义并不会有以下形式出现，是不是 AI 生成的呃呃？
+
+    // List* param_list = dynamic_cast<List*>(param_stx.get()->get());
+    // if (!param_list) {
+    //     // Single parameter (e.g., (lambda x x) → params = {"x"})
+    //     SymbolSyntax* single_param = dynamic_cast<SymbolSyntax*>(param_stx.get()->get());
+    //     if (single_param) {
+    //         params.push_back(single_param->s);
+    //         return params;
+    //     }
+    //     throw RuntimeError("Invalid lambda parameter list");
+    // }
 
     // Multiple parameters (e.g., (a b c) → params = {"a", "b", "c"})
-    for (const auto& stx : param_list->stxs) {
+    for (const auto& stx : param_stx) {
         SymbolSyntax* param_sym = dynamic_cast<SymbolSyntax*>(stx.get());
         if (!param_sym) {
             throw RuntimeError("Lambda parameters must be symbols");
@@ -67,7 +69,7 @@ vector<string> parse_lambda_params(const std::shared_ptr<Syntax>& param_stx, Ass
 /**
  * @brief Helper function: Check if list is function shorthand (define (name args...) body...)
  */
-bool is_define_shorthand(const vector<std::shared_ptr<Syntax>>& stxs) {
+bool is_define_shorthand(const vector<Syntax>& stxs) {
     if (stxs.size() < 2) return false;
     // Second element must be a List starting with Symbol (e.g., (sum3 a b c))
     List* func_list = dynamic_cast<List*>(stxs[1].get());
@@ -88,7 +90,7 @@ Expr Number::parse(Assoc &env) {
 
 Expr RationalSyntax::parse(Assoc &env) {
     // Parse rational number (e.g., 1/2 → RationalExpr)
-    return Expr(new RationalExpr(num, den));
+    return Expr(new RationalNum(numerator, denominator));
 }
 
 Expr SymbolSyntax::parse(Assoc &env) {
@@ -114,9 +116,12 @@ Expr List::parse(Assoc &env) {
     }
 
     // Step 1: Parse all parameters (stxs[1..end] → vector<Expr>)
-    vector<Expr> params = parse_expr_list(vector<std::shared_ptr<Syntax>>(stxs.begin()+1, stxs.end()), env);
+    vector<Expr> params = parse_expr_list(vector<Syntax>(stxs.begin()+1, stxs.end()), env);
 
     // Step 2: Check if first element is Symbol (for special forms/primitives/variables)
+
+    // WARNING: 这么判断是不是符号这能行？
+
     SymbolSyntax* id = dynamic_cast<SymbolSyntax*>(stxs[0].get());
     if (id == nullptr) {
         // Non-symbol first element → function application (Apply)
@@ -140,11 +145,11 @@ Expr List::parse(Assoc &env) {
                     string func_name = dynamic_cast<SymbolSyntax*>(func_list->stxs[0].get())->s;
 
                     // Parse parameters: (args...) → vector<string>
-                    vector<std::shared_ptr<Syntax>> param_stxs(func_list->stxs.begin()+1, func_list->stxs.end());
-                    vector<string> lambda_params = parse_lambda_params(std::make_shared<List>(param_stxs), env);
+                    vector<Syntax> param_stxs(func_list->stxs.begin()+1, func_list->stxs.end());
+                    vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
                     // Parse body: stxs[2..end] → wrapped in Begin
-                    vector<Expr> lambda_body = parse_expr_list(vector<std::shared_ptr<Syntax>>(stxs.begin()+2, stxs.end()), env);
+                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
                     Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                     // Create lambda expression
@@ -168,10 +173,12 @@ Expr List::parse(Assoc &env) {
                 if (stxs.size() < 3) throw RuntimeError("lambda requires at least 2 arguments");
 
                 // Parse parameters
-                vector<string> lambda_params = parse_lambda_params(stxs[1], env);
+                List* func_list = dynamic_cast<List*>(stxs[1].get());
+                vector<Syntax> param_stxs(func_list->stxs.begin(), func_list->stxs.end());
+                vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
                 // Parse body (wrap multiple expressions in Begin)
-                vector<Expr> lambda_body = parse_expr_list(vector<std::shared_ptr<Syntax>>(stxs.begin()+2, stxs.end()), env);
+                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
                 Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                 return Expr(new Lambda(lambda_params, body));
@@ -182,20 +189,20 @@ Expr List::parse(Assoc &env) {
                 if (stxs.size() < 3 || stxs.size() > 4) throw RuntimeError("if requires 2 or 3 arguments");
                 Expr cond = stxs[1]->parse(env);
                 Expr conseq = stxs[2]->parse(env);
-                Expr alter = (stxs.size() == 4) ? stxs[3]->parse(env) : Expr(new VoidExpr());
+                Expr alter = (stxs.size() == 4) ? stxs[3]->parse(env) : Expr(new MakeVoid());
                 return Expr(new If(cond, conseq, alter));
             }
 
             case E_BEGIN: {
                 // (begin expr1 expr2 ...)
-                vector<Expr> begin_body = parse_expr_list(vector<std::shared_ptr<Syntax>>(stxs.begin()+1, stxs.end()), env);
+                vector<Expr> begin_body = parse_expr_list(vector<Syntax>(stxs.begin()+1, stxs.end()), env);
                 return Expr(new Begin(begin_body));
             }
 
             case E_QUOTE: {
                 // (quote expr)
                 if (stxs.size() != 2) throw RuntimeError("quote requires exactly 1 argument");
-                return Expr(new Quote(*stxs[1]));
+                return Expr(new Quote(stxs[1]));
             }
 
             default:
@@ -249,25 +256,25 @@ Expr List::parse(Assoc &env) {
             case E_CDR:
                 if (params.size() != 1) throw RuntimeError("cdr requires exactly 1 argument");
                 return Expr(new Cdr(params[0]));
-            case E_IS_BOOLEAN:
+            case E_BOOLQ:
                 if (params.size() != 1) throw RuntimeError("boolean? requires exactly 1 argument");
                 return Expr(new IsBoolean(params[0]));
-            case E_IS_FIXNUM:
+            case E_INTQ:
                 if (params.size() != 1) throw RuntimeError("fixnum? requires exactly 1 argument");
                 return Expr(new IsFixnum(params[0]));
-            case E_IS_NULL:
+            case E_NULLQ:
                 if (params.size() != 1) throw RuntimeError("null? requires exactly 1 argument");
                 return Expr(new IsNull(params[0]));
-            case E_IS_PAIR:
+            case E_PAIRQ:
                 if (params.size() != 1) throw RuntimeError("pair? requires exactly 1 argument");
                 return Expr(new IsPair(params[0]));
-            case E_IS_PROCEDURE:
+            case E_PROCQ:
                 if (params.size() != 1) throw RuntimeError("procedure? requires exactly 1 argument");
                 return Expr(new IsProcedure(params[0]));
-            case E_IS_SYMBOL:
+            case E_SYMBOLQ:
                 if (params.size() != 1) throw RuntimeError("symbol? requires exactly 1 argument");
                 return Expr(new IsSymbol(params[0]));
-            case E_IS_STRING:
+            case E_STRINGQ:
                 if (params.size() != 1) throw RuntimeError("string? requires exactly 1 argument");
                 return Expr(new IsString(params[0]));
             case E_DISPLAY:
@@ -276,6 +283,11 @@ Expr List::parse(Assoc &env) {
             case E_NOT:
                 if (params.size() != 1) throw RuntimeError("not requires exactly 1 argument");
                 return Expr(new Not(params[0]));
+
+            case E_EXIT:
+                return Expr(new Exit());
+            case E_VOID:
+                return Expr(new MakeVoid());
 
             default:
                 throw RuntimeError("Unimplemented primitive: " + op);

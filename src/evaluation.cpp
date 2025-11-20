@@ -9,17 +9,13 @@
  */
 
 #include "value.hpp"
-#include "value.cpp"
 #include "expr.hpp"
-#include "expr.cpp"
 #include "RE.hpp"
 #include "syntax.hpp"
 #include <cstring>
 #include <vector>
 #include <map>
 #include <climits>
-#include <algorithm>
-#include <cctype>
 
 extern std::map<std::string, ExprType> primitives;
 extern std::map<std::string, ExprType> reserved_words;
@@ -185,11 +181,14 @@ Value Plus::evalRator(const Value &rand1, const Value &rand2) { // +
     int new_num = num1 * den2 + num2 * den1;
     int new_den = den1 * den2;
     //约分
-    int common_divisor = gcd(abs(new_num), abs(new_den));
-    if (common_divisor != 0) {
-        new_num /= common_divisor;
-        new_den /= common_divisor;
-    }
+
+    //WARNING：不需要约分，Rational 的构造函数里写了
+
+    // int common_divisor = gcd(abs(new_num), abs(new_den));
+    // if (common_divisor != 0) {
+    //     new_num /= common_divisor;
+    //     new_den /= common_divisor;
+    // }
 
     // 确保分母为正数（约定：分数的分母始终为正）
     if (new_den < 0) {
@@ -233,11 +232,11 @@ Value Minus::evalRator(const Value &rand1, const Value &rand2) {
     int new_num = num1 * den2 - num2 * den1;
     int new_den = den1 * den2;
     //约分
-    int common_divisor = gcd(abs(new_num), abs(new_den));
-    if (common_divisor != 0) {
-        new_num /= common_divisor;
-        new_den /= common_divisor;
-    }
+    // int common_divisor = gcd(abs(new_num), abs(new_den));
+    // if (common_divisor != 0) {
+    //     new_num /= common_divisor;
+    //     new_den /= common_divisor;
+    // }
 
     // 确保分母为正数（约定：分数的分母始终为正）
     if (new_den < 0) {
@@ -282,11 +281,11 @@ Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
     int new_num = num1 * num2;
     int new_den = den1 * den2;
     //约分
-    int common_divisor = gcd(abs(new_num), abs(new_den));
-    if (common_divisor != 0) {
-        new_num /= common_divisor;
-        new_den /= common_divisor;
-    }
+    // int common_divisor = gcd(abs(new_num), abs(new_den));
+    // if (common_divisor != 0) {
+    //     new_num /= common_divisor;
+    //     new_den /= common_divisor;
+    // }
 
     // 确保分母为正数（约定：分数的分母始终为正）
     if (new_den < 0) {
@@ -334,11 +333,11 @@ Value Div::evalRator(const Value &rand1, const Value &rand2) {
     int new_num = num1 * den2;
     int new_den = den1 * num2;
     //约分
-    int common_divisor = gcd(abs(new_num), abs(new_den));
-    if (common_divisor != 0) {
-        new_num /= common_divisor;
-        new_den /= common_divisor;
-    }
+    // int common_divisor = gcd(abs(new_num), abs(new_den));
+    // if (common_divisor != 0) {
+    //     new_num /= common_divisor;
+    //     new_den /= common_divisor;
+    // }
 
     // 确保分母为正数（约定：分数的分母始终为正）
     if (new_den < 0) {
@@ -575,6 +574,7 @@ Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple ar
         return Value(new Boolean(true));
     }
     //TODO: To complete the lesseq logic
+    return nullptr;
 }
 
 Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple args
@@ -594,6 +594,7 @@ Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple
         return Value(new Boolean(true));
     }
     //TODO: To complete the lesseq logic
+    return nullptr;
 }
 
 Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple args
@@ -613,6 +614,7 @@ Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple a
         return Value(new Boolean(true));
     }
     //TODO: To complete the equal logic
+    return nullptr;
 }
 
 Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multiple args
@@ -632,6 +634,7 @@ Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multi
         return Value(new Boolean(true));
     }
     //TODO: To complete the greatereq logic
+    return nullptr;
 }
 
 Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple args
@@ -651,6 +654,7 @@ Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple
         return Value(new Boolean(true));
     }
     //TODO: To complete the greater logic
+    return nullptr;
 }
 
 Value Cons::evalRator(const Value &rand1, const Value &rand2) { // cons
@@ -658,6 +662,7 @@ Value Cons::evalRator(const Value &rand1, const Value &rand2) { // cons
     Value cdr = rand2;
     return Value(new Pair(car, cdr));
     //TODO: To complete the cons logic
+    return nullptr;
 }
 
 Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
@@ -671,6 +676,7 @@ Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
         return p;
     }
     //TODO: To complete the list logic
+    return nullptr;
 }
 
 Value IsList::evalRator(const Value &rand) { // list?
@@ -1060,7 +1066,7 @@ Value Apply::eval(Assoc &e) {
         return clos_ptr->e->eval(param_env);
     }
 }
-extern Assoc global_env;
+// extern Assoc global_env;
 bool does_expr_reference(const Expr& expr, const std::string& var_name) {
     // 1. Symbol 表达式：直接匹配变量名
     if (auto* sym = dynamic_cast<Symbol*>(expr.get())) {
@@ -1124,18 +1130,18 @@ Value Define::eval(Assoc &env) {
         if (does_expr_reference(lambda_expr->e, var_name)) {
             is_recursive = true;
             // 占位：先绑定一个临时值（如 Void），避免函数体求值时未定义
-            extend(var_name, Value(new Void()), global_env);
+            extend(var_name, Value(new Void()), env);
         }
     }
-    Value final_val = value_expr->eval(global_env);
+    Value final_val = value_expr->eval(env);
     if (is_recursive) {
-        modify(var_name, final_val, global_env);  // 更新占位符为真实闭包
+        modify(var_name, final_val, env);  // 更新占位符为真实闭包
     } else {
         // 非递归：存在则更新，不存在则新增绑定
-        if (find(var_name, global_env).get() != nullptr) {
-            modify(var_name, final_val, global_env);  // 重定义
+        if (find(var_name, env).get() != nullptr) {
+            modify(var_name, final_val, env);  // 重定义
         } else {
-            extend(var_name, final_val, global_env);  // 新定义
+            extend(var_name, final_val, env);  // 新定义
         }
     }
 
@@ -1146,14 +1152,17 @@ Value Define::eval(Assoc &env) {
 
 Value Let::eval(Assoc &env) {
     //TODO: To complete the let logic
+    return nullptr;
 }
 
 Value Letrec::eval(Assoc &env) {
     //TODO: To complete the letrec logic
+    return nullptr;
 }
 
 Value Set::eval(Assoc &env) {
     //TODO: To complete the set logic
+    return nullptr;
 }
 
 Value Display::evalRator(const Value &rand) { // display function

@@ -33,7 +33,7 @@ RationalNum::RationalNum(int num, int den) : ExprBase(E_RATIONAL), numerator(num
     int g = gcd(abs(numerator), abs(denominator));
     numerator /= g;
     denominator /= g;
-    
+
     // 确保分母为正
     if (denominator < 0) {
         numerator = -numerator;
