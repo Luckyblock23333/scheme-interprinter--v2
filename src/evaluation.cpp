@@ -782,6 +782,7 @@ Value Begin::eval(Assoc &e) {
     //TODO: To complete the begin logic
 }
 Value syntax_to_quoted_value(const Syntax &s_we_own) {
+    while (1);
     // 1. 判断 SyntaxBase 的具体类型（通过 dynamic_cast）
     SyntaxBase* base = s_we_own.get();
     // 处理整数
