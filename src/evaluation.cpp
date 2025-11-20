@@ -390,7 +390,10 @@ Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple ar
 
 Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple args
     if (args.empty()) {
-        return Value(new Integer(0)); // 空参数时返回 0（Scheme 约定）
+        throw(RuntimeError("(-)→ RuntimeError")); // 空参数时返回 RuntimeError（Scheme 约定）
+    }
+    if (args.size() == 1) {
+        return Minus(Expr(new MinusVar({})), Expr(new MinusVar({}))).evalRator(IntegerV(0), args[0]);
     }
     Value sum = args[0];
     for(int i = 1; i < args.size(); i++) {
@@ -402,7 +405,7 @@ Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple a
 
 Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple args
     if (args.empty()) {
-        return Value(new Integer(0)); // 空参数时返回 0（Scheme 约定）
+        return Value(new Integer(1)); // 空参数时返回 1（Scheme 约定）
     }
     Value sum = args[0];
     for(int i = 1; i < args.size(); i++) {
@@ -414,7 +417,10 @@ Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple ar
 
 Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple args
     if (args.empty()) {
-        return Value(new Integer(0)); // 空参数时返回 0（Scheme 约定）
+        throw(RuntimeError("(/)→ RuntimeError")); // 空参数时返回 RuntimeError（Scheme 约定）
+    }
+    if (args.size() == 1) {
+        return Div(Expr(new DivVar({})), Expr(new DivVar({}))).evalRator(IntegerV(1), args[0]);
     }
     Value sum = args[0];
     for(int i = 1; i < args.size(); i++) {
@@ -568,7 +574,6 @@ Value Greater::evalRator(const Value &rand1, const Value &rand2) { // >
 }
 
 Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple args
-    bool always_less = true;
     if (args.empty()) {
         return Value(new Boolean(true));
     }
@@ -576,19 +581,13 @@ Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple ar
         Value t = Less(Expr(new LessVar({})), Expr(new LessVar({}))).evalRator(args[i], args[i+1]);
         Boolean* boolVal = dynamic_cast<Boolean*>(t.get());
         if (boolVal->b == false){
-            always_less = false;
             return Value(new Boolean(false));
         }
     }
-    if (always_less) {
-        return Value(new Boolean(true));
-    }
-    //TODO: To complete the lesseq logic
-    return nullptr;
+    return Value(new Boolean(true));
 }
 
 Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple args
-    bool always_lesseq = true;
     if (args.empty()) {
         return Value(new Boolean(true));
     }
@@ -596,19 +595,13 @@ Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple
         Value t = LessEq(Expr(new LessEqVar({})), Expr(new LessEqVar({}))).evalRator(args[i], args[i+1]);
         Boolean* boolVal = dynamic_cast<Boolean*>(t.get());
         if (boolVal->b == false){
-            always_lesseq = false;
             return Value(new Boolean(false));
         }
     }
-    if (always_lesseq) {
         return Value(new Boolean(true));
-    }
-    //TODO: To complete the lesseq logic
-    return nullptr;
 }
 
 Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple args
-    bool always_less = true;
     if (args.empty()) {
         return Value(new Boolean(true));
     }
@@ -616,19 +609,13 @@ Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple a
         Value t = Equal(Expr(new EqualVar({})), Expr(new EqualVar({}))).evalRator(args[i], args[i+1]);
         Boolean* boolVal = dynamic_cast<Boolean*>(t.get());
         if (boolVal->b == false){
-            always_less = false;
             return Value(new Boolean(false));
         }
     }
-    if (always_less) {
-        return Value(new Boolean(true));
-    }
-    //TODO: To complete the equal logic
-    return nullptr;
+    return Value(new Boolean(true));
 }
 
 Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multiple args
-    bool always_less = true;
     if (args.empty()) {
         return Value(new Boolean(true));
     }
@@ -636,19 +623,13 @@ Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multi
         Value t = GreaterEq(Expr(new GreaterEqVar({})), Expr(new GreaterEqVar({}))).evalRator(args[i], args[i+1]);
         Boolean* boolVal = dynamic_cast<Boolean*>(t.get());
         if (boolVal->b == false){
-            always_less = false;
             return Value(new Boolean(false));
         }
     }
-    if (always_less) {
-        return Value(new Boolean(true));
-    }
-    //TODO: To complete the greatereq logic
-    return nullptr;
+    return Value(new Boolean(true));
 }
 
 Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple args
-    bool always_less = true;
     if (args.empty()) {
         return Value(new Boolean(true));
     }
@@ -656,23 +637,16 @@ Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple
         Value t = Greater(Expr(new GreaterVar({})), Expr(new GreaterVar({}))).evalRator(args[i], args[i+1]);
         Boolean* boolVal = dynamic_cast<Boolean*>(t.get());
         if (boolVal->b == false){
-            always_less = false;
             return Value(new Boolean(false));
         }
     }
-    if (always_less) {
-        return Value(new Boolean(true));
-    }
-    //TODO: To complete the greater logic
-    return nullptr;
+    return Value(new Boolean(true));
 }
 
 Value Cons::evalRator(const Value &rand1, const Value &rand2) { // cons
     Value car = rand1;
     Value cdr = rand2;
     return Value(new Pair(car, cdr));
-    //TODO: To complete the cons logic
-    return nullptr;
 }
 
 Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
@@ -685,8 +659,6 @@ Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
         }
         return p;
     }
-    //TODO: To complete the list logic
-    return nullptr;
 }
 
 Value IsList::evalRator(const Value &rand) { // list?
@@ -701,7 +673,6 @@ Value IsList::evalRator(const Value &rand) { // list?
     }else {
         return Value(new Boolean(false));
     }
-    //TODO: To complete the list? logic
 }
 
 Value Car::evalRator(const Value &rand) { // car
