@@ -290,8 +290,10 @@ Expr List::parse(Assoc &env) {
                 return Expr(new Not(params[0]));
 
             case E_EXIT:
+                if (params.size() != 1) throw RuntimeError("E_EXIT requires exactly 1 argument");
                 return Expr(new Exit());
             case E_VOID:
+                if (params.size() != 1) throw RuntimeError("E_VOID requires exactly 1 argument");
                 return Expr(new MakeVoid());
 
             default:
