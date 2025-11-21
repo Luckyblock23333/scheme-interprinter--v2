@@ -36,6 +36,13 @@ vector<Expr> parse_expr_list(const vector<Syntax>& stxs, Assoc &env) {
     return exprs;
 }
 
+// 检查变量名是否在当前环境中已定义（用于处理遮蔽）
+bool is_bound(const std::string& name, Assoc& env) {
+    // find 函数通常定义在 Def.hpp/Def.cpp 中，返回 Value
+    // 如果未找到通常返回 nullptr 或空指针
+    return find(name, env).get() != nullptr;
+}
+
 /**
  * @brief Helper function: Parse lambda parameter list (Syntax List → vector<string>)
  */
@@ -118,7 +125,14 @@ Expr List::parse(Assoc &env) {
     // Step 1: Check if first element is Symbol (for special forms/primitives/variables)
 
     SymbolSyntax* id = dynamic_cast<SymbolSyntax*>(stxs[0].get());
-    if (id == nullptr) {
+
+    // 如果第一个元素不是符号，或者是一个被遮蔽的变量，则视为普通函数调用 (Apply)
+    bool is_shadowed = false;
+    if (id != nullptr) {
+        is_shadowed = is_bound(id->s, env);
+    }
+    // 如果不是符号，或者是被遮蔽的变量，直接跳到 Apply
+    if (id == nullptr || is_shadowed) {
         // Non-symbol first element → function application (Apply)
         // e.g., ((lambda (x) x) 5) → Apply(lambda_expr, {5})
         Expr func = stxs[0]->parse(env);
@@ -151,8 +165,14 @@ Expr List::parse(Assoc &env) {
                     vector<Syntax> param_stxs(func_list->stxs.begin()+1, func_list->stxs.end());
                     vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
+                    Assoc body_env = env;
+                    for (const auto& p : lambda_params) {
+                        // 绑定一个占位符（如 Void），只为了标记该变量名已存在
+                        body_env = extend(p, Value(new Void()), body_env);
+                    }
+
                     // Parse body: stxs[2..end] → wrapped in Begin
-                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
+                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
                     Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                     // Create lambda expression
@@ -180,8 +200,14 @@ Expr List::parse(Assoc &env) {
                 vector<Syntax> param_stxs(func_list->stxs.begin(), func_list->stxs.end());
                 vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
+                Assoc body_env = env;
+                for (const auto& p : lambda_params) {
+                    // 绑定占位符，标记遮蔽
+                    body_env = extend(p, Value(new Void()), body_env);
+                }
+
                 // Parse body (wrap multiple expressions in Begin)
-                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
+                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
                 Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                 return Expr(new Lambda(lambda_params, body));
@@ -200,6 +226,10 @@ Expr List::parse(Assoc &env) {
                 // (begin expr1 expr2 ...)
                 vector<Expr> begin_body = parse_expr_list(vector<Syntax>(stxs.begin()+1, stxs.end()), env);
                 return Expr(new Begin(begin_body));
+            }
+
+            case E_COND: {
+                break;
             }
 
             default:
