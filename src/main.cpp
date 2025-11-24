@@ -60,14 +60,15 @@ void REPL(){
             if (val -> v_type == V_TERMINATE)
                 break;
             if (val -> v_type != V_VOID || isExplicitVoidCall(expr)) {
-                val -> show(std :: cout); // value print
+                val -> show(std :: cout);
+                puts("");// value print
             }
         }
         catch (const RuntimeError &RE){
             // std :: cout << RE.message();
-            std :: cout << "RuntimeError";
+            std :: cout << "RuntimeError" << "\n";
         }
-        puts("");
+        // puts("");
     }
 }
 
