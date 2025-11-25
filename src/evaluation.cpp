@@ -79,19 +79,6 @@ Value Var::eval(Assoc &e) { // evaluation of variable
 	if(x.empty()){
 		throw RuntimeError("an block?what a fuckerman you are!! GRRRRRRRRRRRR");
 	}
-	char first = x[0];
-	// 首字符不能是数字、.、@
-	if (isdigit(static_cast<unsigned char>(first)) || first == '.' || first == '@') {
-        throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass" );
-    }
-	// 检查所有字符：不能包含 #、'、"、` 或空白
-    for (int i = 0; i < x.size(); i++) {
-		char other = x[i];
-        if (other == '#' || other == '\'' || other == '"' || other == '`' || isspace(static_cast<unsigned char>(other))) {
-            throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass");
-        }
-    }
-     // 2. 数字优先识别
     bool is_number = is_integer(x);
     if (is_number) {
         size_t pos;
@@ -113,6 +100,19 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             } catch (...) {}
         }
     }
+	char first = x[0];
+	// 首字符不能是数字、.、@
+	if (isdigit(static_cast<unsigned char>(first)) || first == '.' || first == '@') {
+        throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass" );
+    }
+	// 检查所有字符：不能包含 #、'、"、` 或空白
+    for (int i = 0; i < x.size(); i++) {
+		char other = x[i];
+        if (other == '#' || other == '\'' || other == '"' || other == '`' || isspace(static_cast<unsigned char>(other))) {
+            throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass");
+        }
+    }
+     // 2. 数字优先识别
     // TODO: TO identify the invalid variable
     // We request all valid variable just need to be a symbol,you should promise:
     //The first character of a variable name cannot be a digit or any character from the set: {.@}
@@ -1125,50 +1125,77 @@ bool does_expr_reference(const Expr& expr, const std::string& var_name) {
     return false;
 }
 Value Define::eval(Assoc &env) {
-	std::string var_name = this->var;
+    std::string var_name = this->var;
     Expr value_expr = this->e;
-	if (primitives.find(var_name) != primitives.end()) {
-        throw RuntimeError("Cannot redefine primitive function: '" + var_name + "'fuck");
+
+    if (primitives.find(var_name) != primitives.end() || reserved_words.find(var_name) != reserved_words.end()) {
+        throw RuntimeError("Cannot redefine primitive or reserved word: '" + var_name + "'");
     }
 
-    // 2. 检查是否与保留字（reserved_words）重名
-    if (reserved_words.find(var_name) != reserved_words.end()) {
-        throw RuntimeError("Cannot use reserved word as variable: '" + var_name + "'fuck");
-    }
-	// 3. 处理递归
-	bool is_recursive = false;
-    if (auto* lambda_expr = dynamic_cast<Lambda*>(value_expr.get())) {
-        // 检查 lambda 函数体是否引用了自身（调用之前实现的辅助函数）
-        if (does_expr_reference(lambda_expr->e, var_name)) {
-            is_recursive = true;
-            // 占位：先绑定一个临时值（如 Void），避免函数体求值时未定义
-            env = extend(var_name, Value(new Void()), env);
-        }
-    }
+    // 核心修复：总是先创建占位绑定
+    env = extend(var_name, VoidV(), env);
+
     Value final_val = value_expr->eval(env);
-    if (is_recursive) {
-        modify(var_name, final_val, env);  // 更新占位符为真实闭包
-    } else {
-        // 非递归：存在则更新，不存在则新增绑定
-        if (find(var_name, env).get() != nullptr) {
-            modify(var_name, final_val, env);  // 重定义
-        } else {
-            env = extend(var_name, final_val, env);  // 新定义
-        }
-    }
 
-    // Scheme 约定：define 不返回有意义的值（返回 Void）
-    return Value(new Void());
+    // 用最终值更新占位符
+    modify(var_name, final_val, env);
+
+    return VoidV();
 }
 
 Value Let::eval(Assoc &env) {
+    Assoc localEnv = env;
+    for (const auto& binding : bind) {
+        std::string var = binding.first;
+        if(var.empty()){
+            throw RuntimeError("an block?what a fuckerman you are!! GRRRRRRRRRRRR");
+        }
+        char first = var[0];
+        // 首字符不能是数字、.、@
+        if (isdigit(static_cast<unsigned char>(first)) || first == '.' || first == '@') {
+            throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass" );
+        }
+        // 检查所有字符：不能包含 #、'、"、` 或空白
+        for (int i = 0; i < var.size(); i++) {
+            char other = var[i];
+            if (other == '#' || other == '\'' || other == '"' || other == '`' || isspace(static_cast<unsigned char>(other))) {
+                throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass");
+            }
+        }
+        Value boundValue = binding.second->eval(env);
+        // 计算绑定
+        localEnv = extend(binding.first, boundValue, localEnv);
+    }
     //TODO: To complete the let logic
-    return nullptr;
+    return body->eval(localEnv);
 }
 
 Value Letrec::eval(Assoc &env) {
+    Assoc localEnv = env;
+    for (const auto& binding : bind) {
+        std::string var = binding.first;
+        if(var.empty()){
+            throw RuntimeError("an block?what a fuckerman you are!! GRRRRRRRRRRRR");
+        }
+        char first = var[0];
+        if (isdigit(static_cast<unsigned char>(first)) || first == '.' || first == '@') {
+            throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass" );
+        }
+        for (int i = 0; i < var.size(); i++) {
+            char other = var[i];
+            if (other == '#' || other == '\'' || other == '"' || other == '`' || isspace(static_cast<unsigned char>(other))) {
+                throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass");
+            }
+        }
+        localEnv = extend(var, VoidV(), localEnv);
+    }
+    for (const auto& binding : bind) {
+        Value boundValue = binding.second->eval(localEnv);
+        // 计算绑定
+        localEnv = extend(binding.first, boundValue, localEnv);
+    }
     //TODO: To complete the letrec logic
-    return nullptr;
+    return body->eval(localEnv);
 }
 
 Value Set::eval(Assoc &env) {
