@@ -1124,6 +1124,43 @@ bool does_expr_reference(const Expr& expr, const std::string& var_name) {
     // 6. 其他表达式（数字、布尔、字符串、Null 等）：不引用变量
     return false;
 }
+// Value Define::eval(Assoc &env) {
+// 	std::string var_name = this->var;
+//     Expr value_expr = this->e;
+// 	if (primitives.find(var_name) != primitives.end()) {
+//         throw RuntimeError("Cannot redefine primitive function: '" + var_name + "'fuck");
+//     }
+//
+//     // 2. 检查是否与保留字（reserved_words）重名
+//     if (reserved_words.find(var_name) != reserved_words.end()) {
+//         throw RuntimeError("Cannot use reserved word as variable: '" + var_name + "'fuck");
+//     }
+// 	// 3. 处理递归
+// 	bool is_recursive = false;
+//     if (auto* lambda_expr = dynamic_cast<Lambda*>(value_expr.get())) {
+//         // 检查 lambda 函数体是否引用了自身（调用之前实现的辅助函数）
+//         if (does_expr_reference(lambda_expr->e, var_name)) {
+//             is_recursive = true;
+//             // 占位：先绑定一个临时值（如 Void），避免函数体求值时未定义
+//             env = extend(var_name, Value(new Void()), env);
+//         }
+//     }
+//     Value final_val = value_expr->eval(env);
+//     if (is_recursive) {
+//         modify(var_name, final_val, env);  // 更新占位符为真实闭包
+//     } else {
+//         // 非递归：存在则更新，不存在则新增绑定
+//         if (find(var_name, env).get() != nullptr) {
+//             modify(var_name, final_val, env);  // 重定义
+//         } else {
+//             env = extend(var_name, final_val, env);  // 新定义
+//         }
+//     }
+//
+//     // Scheme 约定：define 不返回有意义的值（返回 Void）
+//     return Value(new Void());
+// }
+
 Value Define::eval(Assoc &env) {
     std::string var_name = this->var;
     Expr value_expr = this->e;
