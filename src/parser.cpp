@@ -231,7 +231,63 @@ Expr List::parse(Assoc &env) {
             case E_COND: {
                 break;
             }
+            case E_LET: {
 
+                if (stxs.size() < 3) throw RuntimeError("let requires at least 2 arguments (binding list + body)");
+                List* bind_list = dynamic_cast<List*>(stxs[1].get());
+                if (!bind_list) {
+                    throw RuntimeError("let binding list must be a list of (var expr) pairs");
+                }
+
+                std::vector<std::pair<std::string, Expr>> let_binds;
+                for (const auto& bind_stx : bind_list->stxs) {
+                    List* single_bind = dynamic_cast<List*>(bind_stx.get());
+                    if (!single_bind || single_bind->stxs.size() != 2) {
+                        throw RuntimeError("let binding must be a (var expr) pair");
+                    }
+                    SymbolSyntax* var_stx = dynamic_cast<SymbolSyntax*>(single_bind->stxs[0].get());
+                    if (!var_stx) {
+                        throw RuntimeError("let binding variable must be a symbol");
+                    }
+                    Expr bind_expr = single_bind->stxs[1]->parse(env);
+                    let_binds.emplace_back(var_stx->s, bind_expr);
+                }
+                vector<Syntax> let_body_stxs(stxs.begin() + 2, stxs.end());
+                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, env);
+                Expr let_body = (body_exprs.size() == 1) ? body_exprs[0] : Expr(new Begin(body_exprs));
+                return Expr(new Let(let_binds, let_body));
+            }
+            case E_LETREC :{
+                if (stxs.size() < 3) throw RuntimeError("let requires at least 2 arguments (binding list + body)");
+                List* bind_list = dynamic_cast<List*>(stxs[1].get());
+                if (!bind_list) {
+                    throw RuntimeError("letrec binding list must be a list of (var expr) pairs");
+                }
+
+                std::vector<std::pair<std::string, Expr>> let_binds;
+                for (const auto& bind_stx : bind_list->stxs) {
+                    List* single_bind = dynamic_cast<List*>(bind_stx.get());
+                    if (!single_bind || single_bind->stxs.size() != 2) {
+                        throw RuntimeError("letrec binding must be a (var expr) pair");
+                    }
+                    SymbolSyntax* var_stx = dynamic_cast<SymbolSyntax*>(single_bind->stxs[0].get());
+                    if (!var_stx) {
+                        throw RuntimeError("letrec binding variable must be a symbol");
+                    }
+
+                    // 解析绑定表达式（用当前 env 解析，后续在 Letrec::eval 中求值）
+                    Expr bind_expr = single_bind->stxs[1]->parse(env);
+                    let_binds.emplace_back(var_stx->s, bind_expr);
+                }
+
+                // Step 2: 解析 body（多表达式用 Begin 包裹，和 lambda 的 body 处理逻辑一致）
+                vector<Syntax> let_body_stxs(stxs.begin() + 2, stxs.end());
+                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, env);
+                Expr let_body = (body_exprs.size() == 1) ? body_exprs[0] : Expr(new Begin(body_exprs));
+
+                // Step 3: 构造 Let 对象（body 已处理为单个表达式：要么是原始表达式，要么是 Begin）
+                return Expr(new Letrec(let_binds, let_body));
+            }
             default:
                 throw RuntimeError("Unknown reserved word: " + op);
         }
