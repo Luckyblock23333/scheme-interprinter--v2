@@ -19,6 +19,7 @@
 
 extern std::map<std::string, ExprType> primitives;
 extern std::map<std::string, ExprType> reserved_words;
+extern Assoc global_env;
 
 Value Fixnum::eval(Assoc &e) { // evaluation of a fixnum
     return IntegerV(n);
@@ -112,49 +113,51 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             throw RuntimeError("if you keep inputing these invalid symbols ,i will fuck your ass");
         }
     }
-     // 2. 数字优先识别
-    // TODO: TO identify the invalid variable
-    // We request all valid variable just need to be a symbol,you should promise:
-    //The first character of a variable name cannot be a digit or any character from the set: {.@}
-    //If a string can be recognized as a number, it will be prioritized as a number. For example: 1, -1, +123, .123, +124., 1e-3
-    //Variable names can overlap with primitives and reserve_words
-    //Variable names can contain any non-whitespace characters except #, ', ", `, but the first character cannot be a digit
-    //When a variable is not defined in the current scope, your interpreter should output RuntimeError
+
     Value matched_value = find(x, e);
 	if (matched_value.get()!=nullptr) {
 		return matched_value;
 	}
+
+    // 解决相互递归和 REPL 定义可见性问题
+    if (e.get() != global_env.get()) {
+        matched_value = find(x, global_env);
+        if (matched_value.get() != nullptr) {
+            return matched_value;
+        }
+    }
+
     else if (matched_value.get() == nullptr) {
         static std::map<ExprType, std::pair<Expr, std::vector<std::string>>> primitive_map = {
             {E_VOID,     {new MakeVoid(), {}}},
             {E_EXIT,     {new Exit(), {}}},
-            {E_BOOLQ,    {new IsBoolean(new Var("parm")), {"parm"}}},
-            {E_INTQ,     {new IsFixnum(new Var("parm")), {"parm"}}},
-            {E_NULLQ,    {new IsNull(new Var("parm")), {"parm"}}},
-            {E_PAIRQ,    {new IsPair(new Var("parm")), {"parm"}}},
-            {E_PROCQ,    {new IsProcedure(new Var("parm")), {"parm"}}},
-            {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {"parm"}}},
-            {E_STRINGQ,  {new IsString(new Var("parm")), {"parm"}}},
-            {E_DISPLAY,  {new Display(new Var("parm")), {"parm"}}},
+            {E_BOOLQ,    {new IsBoolean(new Var("parm")), {}}},
+            {E_INTQ,     {new IsFixnum(new Var("parm")), {}}},
+            {E_NULLQ,    {new IsNull(new Var("parm")), {}}},
+            {E_PAIRQ,    {new IsPair(new Var("parm")), {}}},
+            {E_PROCQ,    {new IsProcedure(new Var("parm")), {}}},
+            {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {}}},
+            {E_STRINGQ,  {new IsString(new Var("parm")), {}}},
+            {E_DISPLAY,  {new Display(new Var("parm")), {}}},
             {E_PLUS,     {new PlusVar({}),  {}}},
             {E_MINUS,    {new MinusVar({}), {}}},
             {E_MUL,      {new MultVar({}),  {}}},
             {E_DIV,      {new DivVar({}),   {}}},
-            {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-            {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+            {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {}}},
+            {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {}}},
             {E_LT,       {new LessVar({}), {}}},
             {E_LE,       {new LessEqVar({}), {}}},
             {E_GT,       {new GreaterVar({}), {}}},
             {E_GE,       {new GreaterEqVar({}), {}}},
             {E_EQ,       {new EqualVar({}), {}}},
-            {E_EQQ,      {new IsEq(new Var("a"), new Var("b")), {"a", "b"}}},
-            {E_NOT,      {new Not(new Var("p")), {"p"}}},
-            {E_CONS,     {new Cons(new Var("a"), new Var("b")), {"a", "b"}}},
-            {E_CAR,      {new Car(new Var("p")), {"p"}}},
-            {E_CDR,      {new Cdr(new Var("p")), {"p"}}},
+            {E_EQQ,      {new IsEq(new Var("a"), new Var("b")), {}}},
+            {E_NOT,      {new Not(new Var("p")), {}}},
+            {E_CONS,     {new Cons(new Var("a"), new Var("b")), {}}},
+            {E_CAR,      {new Car(new Var("p")), {}}},
+            {E_CDR,      {new Cdr(new Var("p")), {}}},
             {E_LIST,     {new ListFunc({}), {}}},
-            {E_SETCAR,   {new SetCar(new Var("p"), new Var("v")), {"p", "v"}}},
-            {E_SETCDR,   {new SetCdr(new Var("p"), new Var("v")), {"p", "v"}}}
+            {E_SETCAR,   {new SetCar(new Var("p"), new Var("v")), {}}},
+            {E_SETCDR,   {new SetCdr(new Var("p"), new Var("v")), {}}}
         };
         if (primitives.count(x)) {
             auto it = primitive_map.find(primitives[x]);
@@ -792,12 +795,33 @@ Value IsString::evalRator(const Value &rand) { // string?
 }
 
 Value Begin::eval(Assoc &e) {
+    for (const auto& expr : es) {
+        if (!expr.get()) continue; // 安全检查
+        if (auto* def = dynamic_cast<Define*>(expr.get())) {
+            // 如果当前是 define，那么先创建空绑定，留给之后的闭包用
+            e = extend(def->var, VoidV(), e);
+        }
+    }
+
 	Value result = VoidV();
-	for(int i = 0; i < es.size(); i++) {
-		result = es[i]->eval(e);
-	}
+    for (const auto& expr : es) {
+        if (!expr.get()) continue; // 安全检查
+        if (auto* def = dynamic_cast<Define*>(expr.get())) {
+            // 求值时。特殊处理 Define，不能直接调用 def->eval(e)，否则会再 extend 创建新的，
+            // 导致上面预分配的绑定被覆盖，破坏相互递归。
+
+            Value val = def->e->eval(e);
+
+            // 把创建的空绑定替换为真实值
+            modify(def->var, val, e);
+
+            result = VoidV();
+        } else {
+            result = expr->eval(e);
+        }
+    }
+
 	return result;
-    //TODO: To complete the begin logic
 }
 Value syntax_to_quoted_value(const Syntax &s_we_own) {
     // 1. 判断 SyntaxBase 的具体类型（通过 dynamic_cast）
@@ -953,15 +977,20 @@ Value If::eval(Assoc &e) {
 	return result;
     //TODO: To complete the if logic
 }
+bool is_else_symbol(const Expr& expr) {
+    if (auto* sym = dynamic_cast<Var*>(expr.get())) { // 注意：Parser 把符号解析为 Var
+        return sym->x == "else";
+    }
+    return false;
+}
 Value Cond::eval(Assoc &env) {
     for (const auto& clause : clauses) {
         if (clause.empty()) {
             throw RuntimeError("cond clause cannot be empty!");
         }
-        Value pred_val = clause[0]->eval(env);
+
         // 1. 判断当前子句的第一个 Expr 是否是 else
-        auto judger = dynamic_cast<Symbol*>(pred_val.get());
-        if (judger && judger->s == "else") {
+        if (is_else_symbol(clause[0])) {
             if (clause.size() == 1) {
                 return VoidV();
             }
@@ -973,6 +1002,10 @@ Value Cond::eval(Assoc &env) {
                 }
             }
         }
+
+        //判断完 else 后再 eval，否则对 else 进行 eval，然后抛出 undefined variable
+        Value pred_val = clause[0]->eval(env);
+
         bool is_true = true;
         auto bool_val = dynamic_cast<Boolean*>(pred_val.get()); // 假设你的 BoolV 类型
         if (bool_val != nullptr && !bool_val->b) {
@@ -1106,11 +1139,10 @@ Value Apply::eval(Assoc &e) {
     }
     return body->eval(param_env);
 }
-// extern Assoc global_env;
 bool does_expr_reference(const Expr& expr, const std::string& var_name) {
-    // 1. Symbol 表达式：直接匹配变量名
-    if (auto* sym = dynamic_cast<Symbol*>(expr.get())) {
-        return sym->s == var_name;
+    // 1. Parser 将变量解析为 Var 类型，而不是 Symbol 类型：直接匹配变量名
+    if (auto* var = dynamic_cast<Var*>(expr.get())) {
+        return var->x == var_name;
     }
 
     // 2. Pair 表达式（表、函数调用等）：递归检查 car 和 cdr

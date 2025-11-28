@@ -281,6 +281,16 @@ Expr List::parse(Assoc &env) {
                     throw RuntimeError("letrec binding list must be a list of (var expr) pairs");
                 }
 
+                // 先收集所有变量名，构建 body_env
+                Assoc body_env = env;
+                // 我们需要遍历 stxs[1] 来预先获取所有名字
+                for (const auto& bind_stx : bind_list->stxs) {
+                    List* single_bind = dynamic_cast<List*>(bind_stx.get());
+                    // ... 安全检查 ...
+                    SymbolSyntax* var_stx = dynamic_cast<SymbolSyntax*>(single_bind->stxs[0].get());
+                    body_env = extend(var_stx->s, Value(new Void()), body_env);
+                }
+
                 std::vector<std::pair<std::string, Expr>> let_binds;
                 for (const auto& bind_stx : bind_list->stxs) {
                     List* single_bind = dynamic_cast<List*>(bind_stx.get());
@@ -293,13 +303,13 @@ Expr List::parse(Assoc &env) {
                     }
 
                     // 解析绑定表达式（用当前 env 解析，后续在 Letrec::eval 中求值）
-                    Expr bind_expr = single_bind->stxs[1]->parse(env);
+                    Expr bind_expr = single_bind->stxs[1]->parse(body_env);
                     let_binds.emplace_back(var_stx->s, bind_expr);
                 }
 
                 // Step 2: 解析 body（多表达式用 Begin 包裹，和 lambda 的 body 处理逻辑一致）
                 vector<Syntax> let_body_stxs(stxs.begin() + 2, stxs.end());
-                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, env);
+                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, body_env);
                 Expr let_body = (body_exprs.size() == 1) ? body_exprs[0] : Expr(new Begin(body_exprs));
 
                 // Step 3: 构造 Let 对象（body 已处理为单个表达式：要么是原始表达式，要么是 Begin）
