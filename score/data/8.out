@@ -1,1 +1,54 @@
--3
+RuntimeError
+(1 . 2)
+(10 . 2)
+(10 . 20)
+(99 . 20)
+(99 . 88)
+()
+()
+(100 . 2)
+()
+(1 . 2)
+(99 . 2)
+(a . b)
+(hello . b)
+(1 . 2)
+(1 . 88)
+(x . y)
+(x . world)
+((1 . 2) 3 . 4)
+((first . 2) 3 . 4)
+((first . 2) 3 . last)
+RuntimeError
+RuntimeError
+(1 2 3)
+(first 2 3)
+(first second 3)
+(first second third)
+((a . b) c . d)
+((new-a . b) c . d)
+((new-a . new-b) c . d)
+((new-a . new-b) new-c . d)
+((new-a . new-b) new-c . new-d)
+(1 . 2)
+(#t . 2)
+(#t . "string")
+(() . "string")
+(() x . y)
+(value)
+value
+value
+(10 . 20)
+30
+120
+300
+(#t . #f)
+(#f . #f)
+(#f . #t)
+(item)
+#t
+(item . not-null)
+#f
+#t
+#t
+#t

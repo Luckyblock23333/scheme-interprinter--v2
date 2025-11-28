@@ -49,9 +49,9 @@ void REPL(){
     // read - evaluation - print loop
     Assoc global_env = empty();
     while (1){
+        // #ifndef ONLINE_JUDGE
         //     std::cout << "scm> ";
         // #endif
-        // #ifndef ONLINE_JUDGE
         Syntax stx = readSyntax(std :: cin); // read
         try{
             Expr expr = stx -> parse(global_env); // parse
@@ -65,7 +65,9 @@ void REPL(){
             }
         }
         catch (const RuntimeError &RE){
-            // std :: cout << RE.message();
+            // #ifndef ONLINE_JUDGE
+            //     std :: cout << RE.message();
+            // #endif
             std :: cout << "RuntimeError" << "\n";
         }
         // puts("");

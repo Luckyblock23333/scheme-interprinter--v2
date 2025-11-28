@@ -1,1 +1,34 @@
-(car (quote (1 2)))
+((if #t + *) 2 3)
+
+(if #t 42 0)
+
+(if #t (if 45 7 #f) #f)
+(if 0 (+ 1 2) (+ #t 1))
+(if (< -1 0) (= 1 1) (>= 1 3))
+
+(if 0 (- 1 #f) 1)
+
+(if #t 1 2)
+(if #f 1 2)
+(if 0 'zero 'not-zero)
+(if '() 'empty 'not-empty)
+(if "string" 'string 'not-string)
+
+(if (> 5 3) (+ 1 2) (- 1 2))
+(if (< 5 3) (+ 1 2) (- 1 2))
+
+(if (and #t #t) 'both-true 'not-both-true)
+(if (or #f #t) 'at-least-one-true 'all-false)
+(if (and #f #t) 'both-true 'not-both-true)
+(if (or #f #f) 'at-least-one-true 'all-false)
+
+(if #t (if #t 'inner-true 'inner-false) 'outer-false)
+(if #f (if #t 'inner-true 'inner-false) 'outer-false)
+
+(if (pair? (cons 1 2)) (car (cons 1 2)) 'not-pair)
+(if (null? '()) 'is-null (cdr (cons 1 2)))
+
+(if #t 'true-branch (/ 1 0))
+(if #f (/ 1 0) 'false-branch)
+
+(exit)

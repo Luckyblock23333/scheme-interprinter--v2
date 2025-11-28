@@ -1,1 +1,50 @@
-63
+#t
+RuntimeError
+3
+5
+42
+#<void>
+#<void>
+(1 . 2)
+(a . b)
+(#t . #f)
+(3 . 12)
+((1 . 2) 3 . 4)
+1
+2
+hello
+world
+3
+12
+1
+2
+3
+4
+#t
+#f
+#f
+#t
+#f
+#t
+#f
+#t
+#t
+#f
+#t
+#f
+#t
+#f
+hello
+(1 2 3)
+(a b c)
+symbol
+(1 2 3)
+()
+#t
+#t
+a
+#t
+#t
+RuntimeError
+RuntimeError
+RuntimeError

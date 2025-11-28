@@ -1,1 +1,243 @@
-(boolean? 7)
+(define (is-even n)
+  (cond
+   ((= n 0) #t)
+   (else (is-odd (- n 1)))))
+
+(define (is-odd n)
+  (cond
+   ((= n 0) #f)
+   (else (is-even (- n 1)))))
+
+(is-even 6)
+(is-odd 6)
+(is-even 7)
+(is-odd 7)
+
+(define (process-list n)
+  (begin
+    (define (double-if-even x)
+      (cond
+       ((is-zero x) 0)
+       ((even-helper x) (* 2 x))
+       (else x)))
+    
+    (define (even-helper x)
+      (= (- x (* 2 (/ x 2))) 0))
+    
+    (define (is-zero x)
+      (= x 0))
+    
+    (define (apply-to-range start end)
+      (cond
+       ((> start end) 0)
+       (else (+ (double-if-even start) 
+                (apply-to-range (+ start 1) end)))))
+    
+    (apply-to-range 1 n)))
+
+(process-list 5)
+
+(define (nested-defines x)
+  (begin
+    (define (outer-func n)
+      (begin
+        (define (inner-func m)
+          (cond
+           ((= m 0) 1)
+           (else (* m (inner-func (- m 1))))))
+        
+        (define multiplier 2)
+        (* multiplier (inner-func n))))
+    
+    (define base 3)
+    (+ base (outer-func x))))
+
+(nested-defines 4)
+
+(define (fibonacci n)
+  (begin
+    (define (fib-helper a b count)
+      (cond
+       ((= count 0) b)
+       (else (fib-helper (+ a b) a (- count 1)))))
+    
+    (cond
+     ((= n 0) 0)
+     ((= n 1) 1)
+     (else (fib-helper 1 0 n)))))
+
+(fibonacci 0)
+(fibonacci 1)
+(fibonacci 5)
+(fibonacci 10)
+
+(define (tree-sum depth)
+  (begin
+    (define (make-tree d)
+      (cond
+       ((= d 0) 1)
+       (else (+ 1 
+                (make-tree (- d 1))
+                (make-tree (- d 1))))))
+    
+    (define (sum-nodes d)
+      (cond
+       ((= d 0) 1)
+       (else (+ 1 
+                (* 2 (sum-nodes (- d 1)))))))
+    
+    (sum-nodes depth)))
+
+(tree-sum 3)
+
+(define (func-a n)
+  (cond
+   ((<= n 0) 1)
+   (else (+ 1 (func-b (- n 1))))))
+
+(define (func-b n)
+  (cond
+   ((<= n 0) 2)
+   (else (+ 2 (func-c (- n 1))))))
+
+(define (func-c n)
+  (cond
+   ((<= n 0) 3)
+   (else (+ 3 (func-a (- n 1))))))
+
+(func-a 3)
+(func-b 3)
+(func-c 3)
+
+((let ((x 10))
+   (lambda () 
+     (set! x 20)
+     x)))
+
+(define test-closure
+  (let ((x 100))
+    (lambda ()
+      x)))
+
+(test-closure)
+
+(define (make-queue) 
+  (cons '() '()))
+
+(define (enqueue! queue obj)
+  (let ((lobj (cons obj '())))
+    (if (null? (car queue))
+        (begin 
+          (set-car! queue lobj)
+          (set-cdr! queue lobj))
+        (begin 
+          (set-cdr! (cdr queue) lobj)
+          (set-cdr! queue lobj))))
+  (car queue))
+
+(define (dequeue! queue)
+  (define obj (car (car queue)))
+  (set-car! queue (cdr (car queue)))
+  obj)
+
+
+(define q (make-queue))
+
+
+(enqueue! q 'a)
+(enqueue! q 'b) 
+(enqueue! q 'c)
+
+
+(dequeue! q)
+
+
+q
+
+
+(define q2 (make-queue))
+
+
+(enqueue! q2 'x)
+(dequeue! q2)
+q2
+
+
+(define q3 (make-queue))
+(enqueue! q3 1)
+(enqueue! q3 2)
+(dequeue! q3)
+(enqueue! q3 3)
+(dequeue! q3)
+(enqueue! q3 4)
+q3
+
+(begin
+  (define x 10)
+  (define y 20)
+  (define (add-xy) (+ x y))
+  (add-xy))
+
+(begin
+  (define (even? n)
+    (if (= n 0) 
+        #t 
+        (odd? (- n 1))))
+  
+  (define (odd? n)
+    (if (= n 0) 
+        #f 
+        (even? (- n 1))))
+  
+  (even? 4))
+
+(begin
+  (define inner-var 100)
+  (begin
+    (define inner-var 200)
+    inner-var))
+
+(begin
+  (define (fib n)
+    (if (<= n 1)
+        n
+        (+ (fib (- n 1)) (fib (- n 2)))))
+  
+  (define (factorial n)
+    (if (<= n 1)
+        1
+        (* n (factorial (- n 1)))))
+  
+  (list (fib 6) (factorial 5)))
+
+(define (simple-sqrt n)
+  (if (= n 0) 0
+      (if (= n 1) 1
+          (if (= n 4) 2
+              (if (= n 9) 3
+                  (if (= n 16) 4
+                      (if (= n 25) 5
+                          1))))))) 
+
+(define (simple-quadric a b c)
+  (if (= a 0)
+      'error
+      (let ((d (- (* b b) (* 4 a c))))
+        (if (< d 0)
+            '()
+            (if (= d 0)
+                (list (/ (- 0 b) (* 2 a)))
+                (let ((sqrt-d (simple-sqrt d)))
+                  (let ((x1 (/ (+ (- 0 b) sqrt-d) (* 2 a)))
+                        (x2 (/ (- (- 0 b) sqrt-d) (* 2 a))))
+                    (list x1 x2))))))))
+
+(simple-quadric 1 -5 6)
+
+(define bank-account (let ((balance 10)) (lambda (n) (set! balance (+ balance n)) balance)))
+
+(bank-account 5)
+(bank-account -3)
+(bank-account 0)
+
+(exit)

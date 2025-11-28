@@ -1,1 +1,70 @@
-(* 7 9)
+(begin (void) (cons 1 2) (if (< 1 2) (symbol? (quote datum)) (quote never)))
+
+(begin (+ #t 1) 1)
+
+(begin 1 2 3)
+(begin (+ 1 2) (* 3 4) (- 10 5))
+(begin (void) (void) 42)
+
+(begin (void))
+(if #t (void) 1)
+
+(cons 1 2)
+(cons 'a 'b)
+(cons #t #f)
+(cons (+ 1 2) (* 3 4))
+(cons (cons 1 2) (cons 3 4))
+
+(car (cons 1 2))
+(cdr (cons 1 2))
+(car (cons 'hello 'world))
+(cdr (cons 'hello 'world))
+(car (cons (+ 1 2) (* 3 4)))
+(cdr (cons (+ 1 2) (* 3 4)))
+
+(car (car (cons (cons 1 2) (cons 3 4))))
+(cdr (car (cons (cons 1 2) (cons 3 4))))
+(car (cdr (cons (cons 1 2) (cons 3 4))))
+(cdr (cdr (cons (cons 1 2) (cons 3 4))))
+
+(pair? (cons 1 2))
+(pair? 42)
+(pair? '())
+(null? '())
+(null? (cons 1 2))
+(number? 42)
+(number? 'symbol)
+(boolean? #t)
+(boolean? #f)
+(boolean? 42)
+(symbol? 'hello)
+(symbol? 42)
+(string? "hello")
+(string? 'symbol)
+
+(quote hello)
+(quote (1 2 3))
+(quote (a b c))
+'symbol
+'(1 2 3)
+'()
+
+(begin
+  (pair? (cons 1 2))
+  (null? '())
+  (number? 42))
+
+(begin
+  (< 1 2)
+  (= 3 3)
+  (> 5 4))
+
+(car (quote (a b c)))
+(pair? (quote (1 2)))
+(symbol? (car (quote (hello world))))
+
+(car 42)
+(cdr 'symbol)
+(+ 'symbol 1)
+
+(exit)

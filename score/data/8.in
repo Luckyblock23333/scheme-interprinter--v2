@@ -1,1 +1,121 @@
-(- 1 4)
+(set-car! 123 456)
+(define p (cons 1 2))
+p
+(set-car! p 10)
+p
+(set-cdr! p 20)
+p
+(set-car! p 99)
+p
+(set-cdr! p 88)
+p
+'()
+(cdr '(1))
+(define p (cons 1 2))
+(set-car! p 100)
+p
+'()
+
+(define lst (cons 1 2))
+lst
+
+(set-car! lst 99)
+lst
+
+(define pair1 (cons 'a 'b))
+pair1
+
+(set-car! pair1 'hello)
+pair1
+
+(define lst2 (cons 1 2))
+lst2
+
+(set-cdr! lst2 88)
+lst2
+
+(define pair2 (cons 'x 'y))
+pair2
+
+(set-cdr! pair2 'world)
+pair2
+
+(define nested (cons (cons 1 2) (cons 3 4)))
+nested
+
+(set-car! (car nested) 'first)
+nested
+
+(set-cdr! (cdr nested) 'last)
+nested
+
+(set-car! 123 456)  
+(set-cdr! 'symbol 'value)  
+
+(define chain (cons 1 (cons 2 (cons 3 '()))))
+chain
+(set-car! chain 'first)
+chain
+(set-car! (cdr chain) 'second)
+chain
+(set-car! (cdr (cdr chain)) 'third)
+chain
+
+(define complex (cons (cons 'a 'b) (cons 'c 'd)))
+complex
+(set-car! (car complex) 'new-a)
+complex
+(set-cdr! (car complex) 'new-b)
+complex
+(set-car! (cdr complex) 'new-c)
+complex
+(set-cdr! (cdr complex) 'new-d)
+complex
+
+(define multi (cons 1 2))
+multi
+(set-car! multi #t)
+multi
+(set-cdr! multi "string")
+multi
+(set-car! multi '())
+multi
+(set-cdr! multi (cons 'x 'y))
+multi
+
+(define self (cons 'value '()))
+self
+(set-cdr! self self)
+(car self)
+(car (cdr self))
+
+(define test-pair (cons 10 20))
+test-pair
+(+ (car test-pair) (cdr test-pair))
+(set-car! test-pair 100)
+(+ (car test-pair) (cdr test-pair))
+(set-cdr! test-pair 200)
+(+ (car test-pair) (cdr test-pair))
+
+(define bool-pair (cons #t #f))
+bool-pair
+(set-car! bool-pair #f)
+bool-pair
+(set-cdr! bool-pair #t)
+bool-pair
+
+(define with-null (cons 'item '()))
+with-null
+(null? (cdr with-null))
+(set-cdr! with-null 'not-null)
+with-null
+(null? (cdr with-null))
+
+(define check-pair (cons 1 2))
+(pair? check-pair)
+(set-car! check-pair '())
+(pair? check-pair)
+(set-cdr! check-pair '())
+(pair? check-pair)
+
+(exit)

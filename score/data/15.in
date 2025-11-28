@@ -1,1 +1,30 @@
-(pair? (quote ()))
+(define pi 314)
+
+(define a 10)
+a
+(define b 20)
+b
+(+ a b)
+
+(define vhello 3)
+vhello
+(define vhello "hello")
+vhello
+
+(define test1 '(1 2 3))
+test1
+(define test2 (quote hello))
+test2
+
+(define x 10)
+(define y 20)
+
+x
+y
+
+(define x "test string")
+(string? x)
+(if (string? "hello") "is string" "not string")
+(if (string? 42) "is string" "not string")
+(exit)
+

@@ -77,33 +77,28 @@ bool is_integer(const std::string& s) {
 
 Value Var::eval(Assoc &e) { // evaluation of variable
 	if(x.empty()){
-	    std::cout<<"you block"<<std::endl;
 		throw RuntimeError("an block?what a fuckerman you are!! GRRRRRRRRRRRR");
-	    std::cout<<"you block"<<std::endl;
 	}
-    bool is_number = false;
-    long long int_val = 0;
-    try {
+    bool is_number = is_integer(x);
+    if (is_number) {
         size_t pos;
-        int_val = stoll(x, &pos);
+        long long val = stoll(x, &pos);
         if (pos == x.size()) { // 完全匹配整数
-            is_number= true;
+            return IntegerV(static_cast<int>(val));
         }
-        if (is_number) {
-            return IntegerV(static_cast<int>(int_val));
-        }
-    } catch (...) {}
+    }
     // 若不是整数，尝试解析有理数（如 "1/2"、"-3/4"）
-
-    size_t slash_pos = x.find('/');
-    if (slash_pos != std::string::npos && slash_pos > 0 && slash_pos < x.size()-1) {
-        try {
-            long long numerator = stoll(x.substr(0, slash_pos));
-            long long denominator = stoll(x.substr(slash_pos+1));
-            if (denominator != 0) { // 分母不为0
-                return RationalV(static_cast<int>(numerator), static_cast<int>(denominator));
-            }
-        } catch (...) {}
+    if (!is_number) {
+        size_t slash_pos = x.find('/');
+        if (slash_pos != std::string::npos && slash_pos > 0 && slash_pos < x.size()-1) {
+            try {
+                long long numerator = stoll(x.substr(0, slash_pos));
+                long long denominator = stoll(x.substr(slash_pos+1));
+                if (denominator != 0) { // 分母不为0
+                    return RationalV(static_cast<int>(numerator), static_cast<int>(denominator));
+                }
+            } catch (...) {}
+        }
     }
 	char first = x[0];
 	// 首字符不能是数字、.、@
@@ -147,7 +142,6 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             {E_DIV,      {new DivVar({}),   {}}},
             {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
             {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-
             {E_LT,       {new LessVar({}), {}}},
             {E_LE,       {new LessEqVar({}), {}}},
             {E_GT,       {new GreaterVar({}), {}}},
@@ -174,9 +168,10 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             return SymbolV("else");
         }
     }
-    std::cout<<"Undefined variable: "<<x<<std::endl;
+    #ifndef ONLINE_JUDGE
+        std::cout<<"Undefined variable: "<<x<<std::endl;
+    #endif
     throw RuntimeError("Undefined variable: " + x);
-    std::cout<<"Undefined variable: "<<x<<std::endl;
 }
 
 
@@ -958,6 +953,10 @@ Value If::eval(Assoc &e) {
 	return result;
     //TODO: To complete the if logic
 }
+bool is_else_symbol(Expr* expr) {
+    Symbol* sym_expr = dynamic_cast<Symbol*>(expr->get());
+    return (sym_expr != nullptr) && (sym_expr->s == "else");
+}
 Value Cond::eval(Assoc &env) {
     for (const auto& clause : clauses) {
         if (clause.empty()) {
@@ -1006,7 +1005,6 @@ Value Cond::eval(Assoc &env) {
 
 Value Lambda::eval(Assoc &env) {
 	if (!e.get()) {
-	    std::cout <<"fuck"<<std::endl;
         throw RuntimeError("fuck you ,beach!,your body is as empty as a vagina");
     }
 	Procedure* proc = new Procedure(x, e, env);
@@ -1014,49 +1012,6 @@ Value Lambda::eval(Assoc &env) {
 	return ret;
     //TODO: To complete the lambda logic
 }
-// Value Apply::eval(Assoc &e) {
-//     Value proc_val = rator->eval(e);
-//     if (!proc_val.get() || proc_val->v_type != V_PROC) {
-//         std::cout<<"Attempt to apply a non-procedure"<<std::endl;
-//         throw RuntimeError("Attempt to apply a non-procedure");
-//         std::cout<<"Attempt to apply a non-procedure"<<std::endl;
-//     }
-//
-//     Procedure* clos_ptr = dynamic_cast<Procedure*>(proc_val.get());
-//     if (!clos_ptr) {
-//         std::cout<<"Attempt to。。。"<<std::endl;
-//         throw RuntimeError("Attempt to apply a non-procedure");
-//         std::cout<<"Attempt to。。。"<<std::endl;
-//     }
-//
-//     // 1. 求值所有实参
-//     std::vector<Value> args;
-//     for (const auto& arg_expr : this->rand) {
-//         args.push_back(arg_expr->eval(e));
-//     }
-//
-//     // 2. 构造参数环境（绑定形参到实参）
-//     Assoc param_env = clos_ptr->env;
-//     // 仅对用户lambda严格检查参数数量（内置原语由自身处理）
-//     bool is_user_lambda = !(dynamic_cast<Unary*>(clos_ptr->e.get()) ||
-//                             dynamic_cast<Binary*>(clos_ptr->e.get()) ||
-//                             dynamic_cast<Variadic*>(clos_ptr->e.get()) ||
-//                             dynamic_cast<MakeVoid*>(clos_ptr->e.get()) ||
-//                             dynamic_cast<Exit*>(clos_ptr->e.get()));
-//     if (is_user_lambda && args.size() != clos_ptr->parameters.size()) {
-//         std::cout<<"weong"<<std::endl;
-//         throw RuntimeError("Wrong number of arguments for lambda");
-//         std::cout<<"weong"<<std::endl;
-//     }
-//     // 绑定形参（无论内置原语还是用户lambda，统一处理）
-//     for (size_t i = 0; i < clos_ptr->parameters.size() && i < args.size(); ++i) {
-//         param_env = extend(clos_ptr->parameters[i], args[i], param_env);
-//     }
-//
-//     // 3. 统一执行函数体（内置原语/用户lambda 都走这里）
-//     return clos_ptr->e->eval(param_env);
-// }
-
 
 Value Apply::eval(Assoc &e) {
 	Value proc_val = rator->eval(e);
@@ -1155,7 +1110,6 @@ Value Apply::eval(Assoc &e) {
     }
     return body->eval(param_env);
 }
-
 // extern Assoc global_env;
 bool does_expr_reference(const Expr& expr, const std::string& var_name) {
     // 1. Symbol 表达式：直接匹配变量名
@@ -1239,23 +1193,21 @@ bool does_expr_reference(const Expr& expr, const std::string& var_name) {
 //     return Value(new Void());
 // }
 
-Value Define::eval(Assoc &env) { // env 是外层环境的引用（比如主循环的 env）
+Value Define::eval(Assoc &env) {
     std::string var_name = this->var;
     Expr value_expr = this->e;
 
-    // 校验：不能重定义原语/保留字
-    if (primitives.count(var_name) != 0 || reserved_words.count(var_name) != 0) {
-        throw RuntimeError("Cannot redefine primitive/reserved word: " + var_name);
+    if (primitives.find(var_name) != primitives.end() || reserved_words.find(var_name) != reserved_words.end()) {
+        throw RuntimeError("Cannot redefine primitive or reserved word: '" + var_name + "'");
     }
 
-    // 步骤1：先创建新层（新层 next 指向当前 env，新层在前）
-    Assoc new_layer = extend(var_name, VoidV(), env);
-    // 步骤2：在新层环境中求值（Lambda 能引用自身，因为新层已有占位）
-    Value final_val = value_expr->eval(new_layer);
-    // 步骤3：用真实值替换新层的占位符
-    modify(var_name, final_val, new_layer);
-    // 步骤4：更新外层环境为新层（后续定义会基于新层，形成链式结构）
-    env = new_layer;
+    // 核心修复：总是先创建占位绑定
+    env = extend(var_name, VoidV(), env);
+
+    Value final_val = value_expr->eval(env);
+
+    // 用最终值更新占位符
+    modify(var_name, final_val, env);
 
     return VoidV();
 }
@@ -1309,7 +1261,7 @@ Value Letrec::eval(Assoc &env) {
     for (const auto& binding : bind) {
         Value boundValue = binding.second->eval(localEnv);
         // 计算绑定
-        modify(binding.first, boundValue, localEnv);
+        localEnv = extend(binding.first, boundValue, localEnv);
     }
     //TODO: To complete the letrec logic
     return body->eval(localEnv);

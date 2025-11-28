@@ -1,1 +1,102 @@
-(number? 1234)
+(set! undefined_var 123) 
+(define x 42)
+x
+(set! x 100)
+x
+(define y "hello")
+y
+
+(define a 10)
+a
+(set! a 20)
+a
+(set! a (* a 2))
+a
+
+(define str "original")
+str
+(set! str "modified")
+str
+
+(define bool #t)
+bool
+(set! bool #f)
+bool
+
+(define lst '(1 2 3))
+lst
+(set! lst '(4 5 6))
+lst
+
+(define counter 0)
+(define (increment!)
+  (set! counter (+ counter 1))
+  counter)
+
+counter
+(increment!)
+(increment!)
+counter
+
+(define make-counter
+  (lambda (init)
+    (lambda ()
+      (set! init (+ init 1))
+      init)))
+
+(define c1 (make-counter 10))
+(define c2 (make-counter 100))
+
+(c1)
+(c1)
+(c2)
+(c1)
+(c2)
+
+(define outer-var 5)
+(define (test-scope)
+  (define inner-var 15)
+  (set! outer-var (* outer-var 2))
+  (set! inner-var (* inner-var 3))
+  (list outer-var inner-var))
+
+outer-var
+(test-scope)
+outer-var
+
+(define chain 1)
+chain
+(set! chain 2)
+(set! chain 3)
+(set! chain 4)
+chain
+
+(define temp 0)
+(set! temp 42)
+
+(define complex-var 1)
+(define (modify-and-return x)
+  (set! complex-var (+ complex-var x))
+  complex-var)
+
+(modify-and-return 5)
+(modify-and-return 10)
+complex-var
+
+(define global-sum 0)
+(define (accumulate-sum n)
+  (if (<= n 0)
+      global-sum
+      (begin
+        (set! global-sum (+ global-sum n))
+        (accumulate-sum (- n 1)))))
+
+global-sum
+(accumulate-sum 5)
+global-sum
+
+(set! global-sum 0)
+(accumulate-sum 3)
+global-sum
+
+(exit)

@@ -1,1 +1,221 @@
-(+ 4 5)
+(list)
+
+(list 1)
+
+(list 1 2)
+
+(list 1 2 3 4 5)
+
+(list 0)
+
+(list (+ 1 2) (* 3 4) (/ 10 2))
+
+(list #t #f)
+
+(list (list 1 2) (list 3 4))
+
+(define (list*2 ls)
+  (if (null? ls)
+      (list)   
+      (cons (* 2 (car ls))   
+            (list*2 (cdr ls))))) 
+
+
+(define (list+1 ls)
+  (if (null? ls)
+      (list)
+      (cons (+ 1 (car ls))
+            (list+1 (cdr ls)))))
+
+
+(define (list-sum ls)
+  (if (null? ls)
+      0   
+      (+ (car ls) (list-sum (cdr ls)))))
+
+(define (list-length ls)
+  (if (null? ls)
+      0   
+      (+ 1 (list-length (cdr ls)))))  
+
+
+(define (reverse-helper ls acc)
+  (if (null? ls)
+      acc    
+      (reverse-helper (cdr ls) (cons (car ls) acc))))  
+
+
+(define (list-reverse ls)
+  (reverse-helper ls (list)))  
+
+(define test-list (list 1 2 3 4 5))  
+(define empty-list (list))          
+
+
+(list*2 test-list)       
+(list*2 empty-list)      
+
+
+(list+1 test-list)       
+(list+1 (list 0 -1 10))   
+
+(list-sum test-list)      
+(list-length test-list) 
+
+(list-reverse test-list) 
+(list-reverse (list 1 2)) 
+
+(define (make-range from to)
+  (if (> from to)
+      (list)
+      (cons from (make-range (+ from 1) to))))
+
+(make-range 1 5)
+
+(define nums (list 10 20 30))
+nums
+(car nums)
+(cdr nums)
+
+(define (first-n-squares n)
+  (define (helper i acc)
+    (if (> i n)
+        acc
+        (helper (+ i 1) (cons (* i i) acc))))
+  (helper 1 (list)))
+
+(first-n-squares 4)
+
+(define (list*2 ls)
+  (if (null? ls)
+      '()
+      (cons (* 2 (car ls))
+            (list*2 (cdr ls)))))
+
+(define (list+1 ls)
+  (if (null? ls)
+      '()
+      (cons (+ 1 (car ls))
+            (list+1 (cdr ls)))))
+
+(define (list-square ls)
+  (if (null? ls)
+      '()
+      (cons (* (car ls) (car ls))
+            (list-square (cdr ls)))))
+
+(define (list-negate ls)
+  (if (null? ls)
+      '()
+      (cons (- 0 (car ls))
+            (list-negate (cdr ls)))))
+
+(define (list-length ls)
+  (if (null? ls)
+      0
+      (+ 1 (list-length (cdr ls)))))
+
+(define (list-sum ls)
+  (if (null? ls)
+      0
+      (+ (car ls) (list-sum (cdr ls)))))
+
+(define (list-product ls)
+  (if (null? ls)
+      1
+      (* (car ls) (list-product (cdr ls)))))
+
+(define (list-max ls)
+  (if (null? ls)
+      'error
+      (if (null? (cdr ls))
+          (car ls)
+          (let ((rest-max (list-max (cdr ls))))
+            (if (> (car ls) rest-max)
+                (car ls)
+                rest-max)))))
+
+(define (list-min ls)
+  (if (null? ls)
+      'error
+      (if (null? (cdr ls))
+          (car ls)
+          (let ((rest-min (list-min (cdr ls))))
+            (if (< (car ls) rest-min)
+                (car ls)
+                rest-min)))))
+
+(define (list-reverse ls)
+  (define (reverse-helper ls acc)
+    (if (null? ls)
+        acc
+        (reverse-helper (cdr ls) (cons (car ls) acc))))
+  (reverse-helper ls '()))
+
+(define (filter-positive ls)
+  (if (null? ls)
+      '()
+      (if (> (car ls) 0)
+          (cons (car ls) (filter-positive (cdr ls)))
+          (filter-positive (cdr ls)))))
+
+(define (list-contains? ls x)
+  (if (null? ls)
+      #f
+      (if (= (car ls) x)
+          #t
+          (list-contains? (cdr ls) x))))
+
+(define (list-ref ls n)
+  (if (null? ls)
+      'error
+      (if (= n 0)
+          (car ls)
+          (list-ref (cdr ls) (- n 1)))))
+
+(define (list-append ls1 ls2)
+  (if (null? ls1)
+      ls2
+      (cons (car ls1) (list-append (cdr ls1) ls2))))
+
+(define test-list '(1 2 3 4 5))
+(define test-list2 '(-2 -1 0 1 2 3))
+(define empty-list '())
+
+(list*2 test-list)      
+(list*2 empty-list)      
+
+(list+1 test-list)        
+(list+1 '(0 -1 10))     
+
+(list-square test-list)   
+(list-square '(-2 -1 2))  
+
+(list-negate test-list)   
+(list-negate test-list2)  
+
+(list-length test-list)   
+(list-sum test-list)     
+(list-product test-list)  
+
+(list-max test-list)     
+(list-min test-list)      
+(list-max test-list2)    
+(list-min test-list2)     
+
+(list-reverse test-list)  
+(list-reverse '(1 2))    
+
+(filter-positive test-list2)      
+
+(list-contains? test-list 3)  
+(list-contains? test-list 6)  
+
+(list-ref test-list 0)    
+(list-ref test-list 2)   
+(list-ref test-list 4)   
+
+(list-append '(1 2) '(3 4)) 
+(list-append test-list '(6 7))  
+
+(exit)

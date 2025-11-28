@@ -1,1 +1,12 @@
-#f
+10
+20
+30
+3
+"hello"
+(1 2 3)
+hello
+10
+20
+#t
+"is string"
+"not string"
