@@ -165,14 +165,9 @@ Expr List::parse(Assoc &env) {
                     vector<Syntax> param_stxs(func_list->stxs.begin()+1, func_list->stxs.end());
                     vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
-                    Assoc body_env = env;
-                    for (const auto& p : lambda_params) {
-                        // 绑定一个占位符（如 Void），只为了标记该变量名已存在
-                        body_env = extend(p, Value(new Void()), body_env);
-                    }
 
                     // Parse body: stxs[2..end] → wrapped in Begin
-                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
+                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
                     Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                     // Create lambda expression
@@ -200,14 +195,8 @@ Expr List::parse(Assoc &env) {
                 vector<Syntax> param_stxs(func_list->stxs.begin(), func_list->stxs.end());
                 vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
-                Assoc body_env = env;
-                for (const auto& p : lambda_params) {
-                    // 绑定占位符，标记遮蔽
-                    body_env = extend(p, Value(new Void()), body_env);
-                }
-
                 // Parse body (wrap multiple expressions in Begin)
-                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
+                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
                 Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                 return Expr(new Lambda(lambda_params, body));
@@ -229,7 +218,17 @@ Expr List::parse(Assoc &env) {
             }
 
             case E_COND: {
-                break;
+                if (stxs.size() < 2) throw RuntimeError("cond requires at least one clause");
+                std::vector<std::vector<Expr>> clau;
+                for (size_t p = 1; p<stxs.size(); ++p) {
+                    List* ex_list = dynamic_cast<List*>(stxs[p].get());
+                    if (!ex_list) {
+                        throw RuntimeError("cond clauses must be lists");
+                    }
+                    std::vector<Expr> pre_clau = parse_expr_list(ex_list->stxs, env);
+                    clau.push_back(pre_clau);
+                }
+                return Expr(new Cond(clau));
             }
             case E_LET: {
 
@@ -288,43 +287,40 @@ Expr List::parse(Assoc &env) {
                 // Step 3: 构造 Let 对象（body 已处理为单个表达式：要么是原始表达式，要么是 Begin）
                 return Expr(new Letrec(let_binds, let_body));
             }
+            case E_SET : {
+                if (stxs.size()!=3) throw RuntimeError("set requires 2 arguments (binding list + body)");
+                SymbolSyntax* var_stx = dynamic_cast<SymbolSyntax*>(stxs[1].get());
+                if (!var_stx) {
+                    throw RuntimeError("let binding variable must be a symbol");
+                }
+                std::string var = var_stx->s;
+                Expr expr = stxs[2]->parse(env);
+                return Expr(new Set(var, expr));
+            }
             default:
                 throw RuntimeError("Unknown reserved word: " + op);
         }
     }
 
     vector<Expr> params = parse_expr_list(vector<Syntax>(stxs.begin()+1, stxs.end()), env);
-    // Step 4: Parse primitive functions
     if (primitives.count(op) != 0) {
         ExprType op_type = primitives[op];
         switch (op_type) {
-            // 可变参数内置函数（用 Var 版本）
-            case E_PLUS:
-                return Expr(new PlusVar(params));
-            case E_MINUS:
-                return Expr(new MinusVar(params));
-            case E_MUL:
-                return Expr(new MultVar(params));
-            case E_DIV:
-                return Expr(new DivVar(params));
-            case E_LT:
-                return Expr(new LessVar(params));
-            case E_LE:
-                return Expr(new LessEqVar(params));
-            case E_EQ:
-                return Expr(new EqualVar(params));
-            case E_GE:
-                return Expr(new GreaterEqVar(params));
-            case E_GT:
-                return Expr(new GreaterVar(params));
-            case E_AND:
-                return Expr(new AndVar(params));
-            case E_OR:
-                return Expr(new OrVar(params));
-            case E_LIST:
-                return Expr(new ListFunc(params));
+            // 可变参数算术/比较函数
+            case E_PLUS: return Expr(new PlusVar(params));
+            case E_MINUS: return Expr(new MinusVar(params));
+            case E_MUL: return Expr(new MultVar(params));
+            case E_DIV: return Expr(new DivVar(params));
+            case E_LT: return Expr(new LessVar(params));
+            case E_LE: return Expr(new LessEqVar(params));
+            case E_EQ: return Expr(new EqualVar(params));
+            case E_GE: return Expr(new GreaterEqVar(params));
+            case E_GT: return Expr(new GreaterVar(params));
+            case E_AND: return Expr(new AndVar(params));
+            case E_OR: return Expr(new OrVar(params));
+            case E_LIST: return Expr(new ListFunc(params));
 
-            // 固定参数内置函数
+            // 固定参数列表/算术函数
             case E_MODULO:
                 if (params.size() != 2) throw RuntimeError("modulo requires exactly 2 arguments");
                 return Expr(new Modulo(params[0], params[1]));
@@ -340,9 +336,15 @@ Expr List::parse(Assoc &env) {
             case E_CDR:
                 if (params.size() != 1) throw RuntimeError("cdr requires exactly 1 argument");
                 return Expr(new Cdr(params[0]));
-
+            case E_SETCAR:
+                if (params.size() != 2) throw RuntimeError("set-car! requires exactly 2 arguments: (set-car! pair new-car)");
+                return Expr(new SetCar(params[0], params[1]));
+            case E_SETCDR:
+                if (params.size() != 2) throw RuntimeError("set-car! requires exactly 2 arguments: (set-cdr! pair new-car)");
+                return Expr(new SetCdr(params[0], params[1]));
+            // 类型判断函数
             case E_EQQ:
-                if (params.size() != 2) throw RuntimeError("eq? requires exactly 2 argument");
+                if (params.size() != 2) throw RuntimeError("eq? requires exactly 2 arguments");
                 return Expr(new IsEq(params[0], params[1]));
             case E_BOOLQ:
                 if (params.size() != 1) throw RuntimeError("boolean? requires exactly 1 argument");
@@ -375,11 +377,12 @@ Expr List::parse(Assoc &env) {
                 if (params.size() != 1) throw RuntimeError("not requires exactly 1 argument");
                 return Expr(new Not(params[0]));
 
+            // 特殊函数（无参数）
             case E_EXIT:
-                if (params.size() != 0) throw RuntimeError("E_EXIT requires exactly 1 argument");
+                if (params.size() != 0) throw RuntimeError("exit requires exactly 0 arguments");
                 return Expr(new Exit());
             case E_VOID:
-                if (params.size() != 0) throw RuntimeError("E_VOID requires exactly 1 argument");
+                if (params.size() != 0) throw RuntimeError("void requires exactly 0 arguments");
                 return Expr(new MakeVoid());
 
             default:

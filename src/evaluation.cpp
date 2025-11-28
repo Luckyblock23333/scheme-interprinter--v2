@@ -77,28 +77,33 @@ bool is_integer(const std::string& s) {
 
 Value Var::eval(Assoc &e) { // evaluation of variable
 	if(x.empty()){
+	    std::cout<<"you block"<<std::endl;
 		throw RuntimeError("an block?what a fuckerman you are!! GRRRRRRRRRRRR");
+	    std::cout<<"you block"<<std::endl;
 	}
-    bool is_number = is_integer(x);
-    if (is_number) {
+    bool is_number = false;
+    long long int_val = 0;
+    try {
         size_t pos;
-        long long val = stoll(x, &pos);
+        int_val = stoll(x, &pos);
         if (pos == x.size()) { // 完全匹配整数
-            return IntegerV(static_cast<int>(val));
+            is_number= true;
         }
-    }
+        if (is_number) {
+            return IntegerV(static_cast<int>(int_val));
+        }
+    } catch (...) {}
     // 若不是整数，尝试解析有理数（如 "1/2"、"-3/4"）
-    if (!is_number) {
-        size_t slash_pos = x.find('/');
-        if (slash_pos != std::string::npos && slash_pos > 0 && slash_pos < x.size()-1) {
-            try {
-                long long numerator = stoll(x.substr(0, slash_pos));
-                long long denominator = stoll(x.substr(slash_pos+1));
-                if (denominator != 0) { // 分母不为0
-                    return RationalV(static_cast<int>(numerator), static_cast<int>(denominator));
-                }
-            } catch (...) {}
-        }
+
+    size_t slash_pos = x.find('/');
+    if (slash_pos != std::string::npos && slash_pos > 0 && slash_pos < x.size()-1) {
+        try {
+            long long numerator = stoll(x.substr(0, slash_pos));
+            long long denominator = stoll(x.substr(slash_pos+1));
+            if (denominator != 0) { // 分母不为0
+                return RationalV(static_cast<int>(numerator), static_cast<int>(denominator));
+            }
+        } catch (...) {}
     }
 	char first = x[0];
 	// 首字符不能是数字、.、@
@@ -142,6 +147,7 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             {E_DIV,      {new DivVar({}),   {}}},
             {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
             {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+
             {E_LT,       {new LessVar({}), {}}},
             {E_LE,       {new LessEqVar({}), {}}},
             {E_GT,       {new GreaterVar({}), {}}},
@@ -164,8 +170,13 @@ Value Var::eval(Assoc &e) { // evaluation of variable
                 return ProcedureV(it->second.second, it->second.first, empty());
             };
         }
+        if (x == "else") {
+            return SymbolV("else");
+        }
     }
+    std::cout<<"Undefined variable: "<<x<<std::endl;
     throw RuntimeError("Undefined variable: " + x);
+    std::cout<<"Undefined variable: "<<x<<std::endl;
 }
 
 
@@ -947,32 +958,55 @@ Value If::eval(Assoc &e) {
 	return result;
     //TODO: To complete the if logic
 }
-bool is_else_symbol(Expr* expr) {
-    Symbol* sym_expr = dynamic_cast<Symbol*>(expr->get());
-    return (sym_expr != nullptr) && (sym_expr->s == "else");
-}
 Value Cond::eval(Assoc &env) {
-	for(int i = 0; i < clauses.size(); i++) {
-		if (clauses[i].empty()) {
-            throw std::runtime_error("if you cin a block ,you are a piece of pigger,fuckman!");
+    for (const auto& clause : clauses) {
+        if (clause.empty()) {
+            throw RuntimeError("cond clause cannot be empty!");
         }
-		if(is_else_symbol(&clauses[i][0])) {
-			return clauses[i][clauses[i].size()-1]->eval(env);
-		}else{
-			auto judger = dynamic_cast<Boolean*>((clauses[i][0]->eval(env)).get());
-			if (judger&&judger->b == true) {
-				return clauses[i][clauses[i].size()-1]->eval(env);
-			}else if(!judger){
-				return clauses[i][clauses[i].size()-1]->eval(env);
-			}
-		}
-	}
-	return Value( new Void() );
+        Value pred_val = clause[0]->eval(env);
+        // 1. 判断当前子句的第一个 Expr 是否是 else
+        auto judger = dynamic_cast<Symbol*>(pred_val.get());
+        if (judger && judger->s == "else") {
+            if (clause.size() == 1) {
+                return VoidV();
+            }
+            for (size_t j = 1; j < clause.size(); ++j) {
+                Value last_result = clause[j]->eval(env);
+                if (j == clause.size()-1) {
+                    Value result = last_result;
+                    return result;
+                }
+            }
+        }
+        bool is_true = true;
+        auto bool_val = dynamic_cast<Boolean*>(pred_val.get()); // 假设你的 BoolV 类型
+        if (bool_val != nullptr && !bool_val->b) {
+            is_true = false;
+        }
+
+        if (is_true) {
+            if (clause.size() == 1) {
+                return pred_val;
+            }
+            for (size_t j = 1; j < clause.size(); ++j) {
+                Value last_result = clause[j]->eval(env);
+                if (j == clause.size()-1) {
+                    Value result = last_result;
+                    return result;
+                }
+            }
+        }
+        // predicate 为假：继续下一个子句
+    }
+
+    // 无匹配分支：返回 VoidV
+    return VoidV();
     //TODO: To complete the cond logic
 }
 
 Value Lambda::eval(Assoc &env) {
 	if (!e.get()) {
+	    std::cout <<"fuck"<<std::endl;
         throw RuntimeError("fuck you ,beach!,your body is as empty as a vagina");
     }
 	Procedure* proc = new Procedure(x, e, env);
@@ -982,101 +1016,46 @@ Value Lambda::eval(Assoc &env) {
 }
 
 Value Apply::eval(Assoc &e) {
-	Value proc_val = rator->eval(e);
-    if (!proc_val.get()  || proc_val->v_type != V_PROC) {throw RuntimeError("Attempt to apply a non-procedure");}
-    Procedure* clos_ptr = dynamic_cast<Procedure*>(proc_val.get());
-	 if (!clos_ptr) {
+    Value proc_val = rator->eval(e);
+    if (!proc_val.get() || proc_val->v_type != V_PROC) {
+        std::cout<<"Attempt to apply a non-procedure"<<std::endl;
         throw RuntimeError("Attempt to apply a non-procedure");
+        std::cout<<"Attempt to apply a non-procedure"<<std::endl;
     }
-    Expr body = clos_ptr->e;
 
+    Procedure* clos_ptr = dynamic_cast<Procedure*>(proc_val.get());
+    if (!clos_ptr) {
+        std::cout<<"Attempt to。。。"<<std::endl;
+        throw RuntimeError("Attempt to apply a non-procedure");
+        std::cout<<"Attempt to。。。"<<std::endl;
+    }
+
+    // 1. 求值所有实参
     std::vector<Value> args;
-    for (const auto& arg_expr : rand) {
+    for (const auto& arg_expr : this->rand) {
         args.push_back(arg_expr->eval(e));
     }
 
-    if (clos_ptr->parameters.empty()) {
-        // 1. 无参数内置函数
-        if (auto* makeVoid = dynamic_cast<MakeVoid*>(body.get())) {
-            return makeVoid->eval(e);  // MakeVoid无参数，直接调用eval
-        }else if (auto* exitFunc = dynamic_cast<Exit*>(body.get())) {
-            return exitFunc->eval(e);  // Exit无参数，直接调用eval
-        }
-        // 2. 单参数内置函数（isboolean、isfixnum、null?、pair?、procedure?、symbol?、string?、display、not、null?、pair?、islist、car、cdr）
-        else if (auto* isBoolean = dynamic_cast<IsBoolean*>(clos_ptr->e.get())) {
-            return isBoolean->evalRator(args[0]);  // boolean? 接收1个参数
-        } else if (auto* isFixnum = dynamic_cast<IsFixnum*>(clos_ptr->e.get())) {
-            return isFixnum->evalRator(args[0]);  // isfixnum 接收1个参数
-        } else if (auto* isNull = dynamic_cast<IsNull*>(clos_ptr->e.get())) {
-            return isNull->evalRator(args[0]);  // null? 接收1个参数
-        } else if (auto* isPair = dynamic_cast<IsPair*>(clos_ptr->e.get())) {
-            return isPair->evalRator(args[0]);  // pair? 接收1个参数
-        } else if (auto* isProcedure = dynamic_cast<IsProcedure*>(clos_ptr->e.get())) {
-            return isProcedure->evalRator(args[0]);  // procedure? 接收1个参数
-        } else if (auto* isSymbol = dynamic_cast<IsSymbol*>(clos_ptr->e.get())) {
-            return isSymbol->evalRator(args[0]);  // symbol? 接收1个参数
-        } else if (auto* isString = dynamic_cast<IsString*>(clos_ptr->e.get())) {
-            return isString->evalRator(args[0]);  // string? 接收1个参数
-        } else if (auto* displayFunc = dynamic_cast<Display*>(clos_ptr->e.get())) {
-            return displayFunc->evalRator(args[0]);  // display 接收1个参数
-        } else if (auto* notFunc = dynamic_cast<Not*>(clos_ptr->e.get())) {
-            return notFunc->evalRator(args[0]);  // not 接收1个参数
-        } else if (auto* isList = dynamic_cast<IsList*>(clos_ptr->e.get())) {
-            return isList->evalRator(args[0]);  // list? 接收1个参数
-        } else if (auto* carFunc = dynamic_cast<Car*>(clos_ptr->e.get())) {
-            return carFunc->evalRator(args[0]);  // car 接收1个参数
-        } else if (auto* cdrFunc = dynamic_cast<Cdr*>(clos_ptr->e.get())) {
-            return cdrFunc->evalRator(args[0]);  // cdr 接收1个参数
-        }
-        // 3. 双参数内置函数（modulo、expt、eq?、cons、set-car!、set-cdr!）
-        else if (auto* moduloFunc = dynamic_cast<Modulo*>(clos_ptr->e.get())) {
-            return moduloFunc->evalRator(args[0], args[1]);  // modulo 接收2个参数
-        } else if (auto* exptFunc = dynamic_cast<Expt*>(clos_ptr->e.get())) {
-            return exptFunc->evalRator(args[0], args[1]);  // expt 接收2个参数
-        } else if (auto* isEq = dynamic_cast<IsEq*>(clos_ptr->e.get())) {
-            return isEq->evalRator(args[0], args[1]);  // eq? 接收2个参数
-        } else if (auto* consFunc = dynamic_cast<Cons*>(clos_ptr->e.get())) {
-            return consFunc->evalRator(args[0], args[1]);  // cons 接收2个参数
-        } else if (auto* setCar = dynamic_cast<SetCar*>(clos_ptr->e.get())) {
-            return setCar->evalRator(args[0], args[1]);  // set-car! 接收2个参数
-        } else if (auto* setCdr = dynamic_cast<SetCdr*>(clos_ptr->e.get())) {
-            return setCdr->evalRator(args[0], args[1]);  // set-cdr! 接收2个参数
-        }
-        // 4. 可变参数内置函数（+、-、*、/、=、<、<=、>、>=、list）
-        else if (auto* plusVar = dynamic_cast<PlusVar*>(clos_ptr->e.get())) {
-            return plusVar->evalRator(args);  // + 接收可变参数（vector<Value>）
-        } else if (auto* minusVar = dynamic_cast<MinusVar*>(clos_ptr->e.get())) {
-            return minusVar->evalRator(args);  // - 接收可变参数
-        } else if (auto* multVar = dynamic_cast<MultVar*>(clos_ptr->e.get())) {
-            return multVar->evalRator(args);  // * 接收可变参数
-        } else if (auto* divVar = dynamic_cast<DivVar*>(clos_ptr->e.get())) {
-            return divVar->evalRator(args);  // / 接收可变参数
-        } else if (auto* equalVar = dynamic_cast<EqualVar*>(clos_ptr->e.get())) {
-            return equalVar->evalRator(args);  // = 接收可变参数
-        } else if (auto* lessVar = dynamic_cast<LessVar*>(clos_ptr->e.get())) {
-            return lessVar->evalRator(args);  // < 接收可变参数
-        } else if (auto* lessEqVar = dynamic_cast<LessEqVar*>(clos_ptr->e.get())) {
-            return lessEqVar->evalRator(args);  // <= 接收可变参数
-        } else if (auto* greaterVar = dynamic_cast<GreaterVar*>(clos_ptr->e.get())) {
-            return greaterVar->evalRator(args);  // > 接收可变参数
-        } else if (auto* greaterEqVar = dynamic_cast<GreaterEqVar*>(clos_ptr->e.get())) {
-            return greaterEqVar->evalRator(args);  // >= 接收可变参数
-        } else if (auto* listFunc = dynamic_cast<ListFunc*>(clos_ptr->e.get())) {
-            return listFunc->evalRator(args);  // list 接收可变参数
-        }
-    }
-
-    // -------------------------- 非内置函数：执行用户lambda函数 --------------------------
-
-    if (args.size() != clos_ptr->parameters.size()) {
-        throw RuntimeError("Wrong number of arguments for lambda");
-    }
-
+    // 2. 构造参数环境（绑定形参到实参）
     Assoc param_env = clos_ptr->env;
-	for (size_t i = 0; i < clos_ptr->parameters.size(); ++i) {
-        param_env = extend(clos_ptr->parameters[i], args[i], param_env);  // 绑定形参和实参
+    // 仅对用户lambda严格检查参数数量（内置原语由自身处理）
+    bool is_user_lambda = !(dynamic_cast<Unary*>(clos_ptr->e.get()) ||
+                            dynamic_cast<Binary*>(clos_ptr->e.get()) ||
+                            dynamic_cast<Variadic*>(clos_ptr->e.get()) ||
+                            dynamic_cast<MakeVoid*>(clos_ptr->e.get()) ||
+                            dynamic_cast<Exit*>(clos_ptr->e.get()));
+    if (is_user_lambda && args.size() != clos_ptr->parameters.size()) {
+        std::cout<<"weong"<<std::endl;
+        throw RuntimeError("Wrong number of arguments for lambda");
+        std::cout<<"weong"<<std::endl;
     }
-    return body->eval(param_env);
+    // 绑定形参（无论内置原语还是用户lambda，统一处理）
+    for (size_t i = 0; i < clos_ptr->parameters.size() && i < args.size(); ++i) {
+        param_env = extend(clos_ptr->parameters[i], args[i], param_env);
+    }
+
+    // 3. 统一执行函数体（内置原语/用户lambda 都走这里）
+    return clos_ptr->e->eval(param_env);
 }
 // extern Assoc global_env;
 bool does_expr_reference(const Expr& expr, const std::string& var_name) {
@@ -1161,21 +1140,23 @@ bool does_expr_reference(const Expr& expr, const std::string& var_name) {
 //     return Value(new Void());
 // }
 
-Value Define::eval(Assoc &env) {
+Value Define::eval(Assoc &env) { // env 是外层环境的引用（比如主循环的 env）
     std::string var_name = this->var;
     Expr value_expr = this->e;
 
-    if (primitives.find(var_name) != primitives.end() || reserved_words.find(var_name) != reserved_words.end()) {
-        throw RuntimeError("Cannot redefine primitive or reserved word: '" + var_name + "'");
+    // 校验：不能重定义原语/保留字
+    if (primitives.count(var_name) != 0 || reserved_words.count(var_name) != 0) {
+        throw RuntimeError("Cannot redefine primitive/reserved word: " + var_name);
     }
 
-    // 核心修复：总是先创建占位绑定
-    env = extend(var_name, VoidV(), env);
-
-    Value final_val = value_expr->eval(env);
-
-    // 用最终值更新占位符
-    modify(var_name, final_val, env);
+    // 步骤1：先创建新层（新层 next 指向当前 env，新层在前）
+    Assoc new_layer = extend(var_name, VoidV(), env);
+    // 步骤2：在新层环境中求值（Lambda 能引用自身，因为新层已有占位）
+    Value final_val = value_expr->eval(new_layer);
+    // 步骤3：用真实值替换新层的占位符
+    modify(var_name, final_val, new_layer);
+    // 步骤4：更新外层环境为新层（后续定义会基于新层，形成链式结构）
+    env = new_layer;
 
     return VoidV();
 }
@@ -1229,15 +1210,21 @@ Value Letrec::eval(Assoc &env) {
     for (const auto& binding : bind) {
         Value boundValue = binding.second->eval(localEnv);
         // 计算绑定
-        localEnv = extend(binding.first, boundValue, localEnv);
+        modify(binding.first, boundValue, localEnv);
     }
     //TODO: To complete the letrec logic
     return body->eval(localEnv);
 }
 
+
 Value Set::eval(Assoc &env) {
+    if (find(var, env).get() == nullptr) {
+        throw RuntimeError("the var has not been defined yet");
+    }
+    Value bond_value = e->eval(env);
+    modify(var, bond_value, env);
+    return VoidV();
     //TODO: To complete the set logic
-    return nullptr;
 }
 
 Value Display::evalRator(const Value &rand) { // display function

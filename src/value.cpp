@@ -88,7 +88,7 @@ Value find(const std::string &x, Assoc &l) {
     }
     return Value(nullptr);
 }
-
+Assoc global_env = empty();
 // ============================================================================
 // Simple Value Types Implementation
 // ============================================================================
