@@ -49,9 +49,9 @@ void REPL(){
     // read - evaluation - print loop
     Assoc global_env = empty();
     while (1){
-        #ifndef ONLINE_JUDGE
-            std::cout << "scm> ";
-        #endif
+        //     std::cout << "scm> ";
+        // #endif
+        // #ifndef ONLINE_JUDGE
         Syntax stx = readSyntax(std :: cin); // read
         try{
             Expr expr = stx -> parse(global_env); // parse
