@@ -165,9 +165,14 @@ Expr List::parse(Assoc &env) {
                     vector<Syntax> param_stxs(func_list->stxs.begin()+1, func_list->stxs.end());
                     vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
+                    Assoc body_env = env;
+                    for (const auto& p : lambda_params) {
+                        // 绑定一个占位符（如 Void），只为了标记该变量名已存在
+                        body_env = extend(p, Value(new Void()), body_env);
+                    }
 
                     // Parse body: stxs[2..end] → wrapped in Begin
-                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
+                    vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
                     Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                     // Create lambda expression
@@ -195,8 +200,14 @@ Expr List::parse(Assoc &env) {
                 vector<Syntax> param_stxs(func_list->stxs.begin(), func_list->stxs.end());
                 vector<string> lambda_params = parse_lambda_params(param_stxs, env);
 
+                Assoc body_env = env;
+                for (const auto& p : lambda_params) {
+                    // 绑定占位符，标记遮蔽
+                    body_env = extend(p, Value(new Void()), body_env);
+                }
+
                 // Parse body (wrap multiple expressions in Begin)
-                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), env);
+                vector<Expr> lambda_body = parse_expr_list(vector<Syntax>(stxs.begin()+2, stxs.end()), body_env);
                 Expr body = (lambda_body.size() == 1) ? lambda_body[0] : Expr(new Begin(lambda_body));
 
                 return Expr(new Lambda(lambda_params, body));
