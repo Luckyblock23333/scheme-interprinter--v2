@@ -262,8 +262,15 @@ Expr List::parse(Assoc &env) {
                     Expr bind_expr = single_bind->stxs[1]->parse(env);
                     let_binds.emplace_back(var_stx->s, bind_expr);
                 }
+
+
+                Assoc body_env = env;
+                for (const auto& bind : let_binds) {
+                    body_env = extend(bind.first, Value(new Void()), body_env);
+                }
+
                 vector<Syntax> let_body_stxs(stxs.begin() + 2, stxs.end());
-                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, env);
+                vector<Expr> body_exprs = parse_expr_list(let_body_stxs, body_env);
                 Expr let_body = (body_exprs.size() == 1) ? body_exprs[0] : Expr(new Begin(body_exprs));
                 return Expr(new Let(let_binds, let_body));
             }

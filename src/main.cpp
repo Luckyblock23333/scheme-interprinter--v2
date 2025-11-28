@@ -65,9 +65,9 @@ void REPL(){
             }
         }
         catch (const RuntimeError &RE){
-            // #ifndef ONLINE_JUDGE
-            //     std :: cout << RE.message();
-            // #endif
+            #ifndef ONLINE_JUDGE
+                // std :: cout << RE.what();
+            #endif
             std :: cout << "RuntimeError" << "\n";
         }
         // puts("");
