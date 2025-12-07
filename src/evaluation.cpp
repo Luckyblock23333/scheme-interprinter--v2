@@ -1058,72 +1058,77 @@ Value Apply::eval(Assoc &e) {
 
     if (clos_ptr->parameters.empty()) {
         // 1. 无参数内置函数
-        if (auto* makeVoid = dynamic_cast<MakeVoid*>(body.get())) {
-            return makeVoid->eval(e);  // MakeVoid无参数，直接调用eval
-        }else if (auto* exitFunc = dynamic_cast<Exit*>(body.get())) {
-            return exitFunc->eval(e);  // Exit无参数，直接调用eval
-        }
-        // 2. 单参数内置函数（isboolean、isfixnum、null?、pair?、procedure?、symbol?、string?、display、not、null?、pair?、islist、car、cdr）
-        else if (auto* isBoolean = dynamic_cast<IsBoolean*>(clos_ptr->e.get())) {
-            return isBoolean->evalRator(args[0]);  // boolean? 接收1个参数
-        } else if (auto* isFixnum = dynamic_cast<IsFixnum*>(clos_ptr->e.get())) {
-            return isFixnum->evalRator(args[0]);  // isfixnum 接收1个参数
-        } else if (auto* isNull = dynamic_cast<IsNull*>(clos_ptr->e.get())) {
-            return isNull->evalRator(args[0]);  // null? 接收1个参数
-        } else if (auto* isPair = dynamic_cast<IsPair*>(clos_ptr->e.get())) {
-            return isPair->evalRator(args[0]);  // pair? 接收1个参数
-        } else if (auto* isProcedure = dynamic_cast<IsProcedure*>(clos_ptr->e.get())) {
-            return isProcedure->evalRator(args[0]);  // procedure? 接收1个参数
-        } else if (auto* isSymbol = dynamic_cast<IsSymbol*>(clos_ptr->e.get())) {
-            return isSymbol->evalRator(args[0]);  // symbol? 接收1个参数
-        } else if (auto* isString = dynamic_cast<IsString*>(clos_ptr->e.get())) {
-            return isString->evalRator(args[0]);  // string? 接收1个参数
-        } else if (auto* displayFunc = dynamic_cast<Display*>(clos_ptr->e.get())) {
-            return displayFunc->evalRator(args[0]);  // display 接收1个参数
-        } else if (auto* notFunc = dynamic_cast<Not*>(clos_ptr->e.get())) {
-            return notFunc->evalRator(args[0]);  // not 接收1个参数
-        } else if (auto* isList = dynamic_cast<IsList*>(clos_ptr->e.get())) {
-            return isList->evalRator(args[0]);  // list? 接收1个参数
-        } else if (auto* carFunc = dynamic_cast<Car*>(clos_ptr->e.get())) {
-            return carFunc->evalRator(args[0]);  // car 接收1个参数
-        } else if (auto* cdrFunc = dynamic_cast<Cdr*>(clos_ptr->e.get())) {
-            return cdrFunc->evalRator(args[0]);  // cdr 接收1个参数
-        }
-        // 3. 双参数内置函数（modulo、expt、eq?、cons、set-car!、set-cdr!）
-        else if (auto* moduloFunc = dynamic_cast<Modulo*>(clos_ptr->e.get())) {
-            return moduloFunc->evalRator(args[0], args[1]);  // modulo 接收2个参数
-        } else if (auto* exptFunc = dynamic_cast<Expt*>(clos_ptr->e.get())) {
-            return exptFunc->evalRator(args[0], args[1]);  // expt 接收2个参数
-        } else if (auto* isEq = dynamic_cast<IsEq*>(clos_ptr->e.get())) {
-            return isEq->evalRator(args[0], args[1]);  // eq? 接收2个参数
-        } else if (auto* consFunc = dynamic_cast<Cons*>(clos_ptr->e.get())) {
-            return consFunc->evalRator(args[0], args[1]);  // cons 接收2个参数
-        } else if (auto* setCar = dynamic_cast<SetCar*>(clos_ptr->e.get())) {
-            return setCar->evalRator(args[0], args[1]);  // set-car! 接收2个参数
-        } else if (auto* setCdr = dynamic_cast<SetCdr*>(clos_ptr->e.get())) {
-            return setCdr->evalRator(args[0], args[1]);  // set-cdr! 接收2个参数
-        }
-        // 4. 可变参数内置函数（+、-、*、/、=、<、<=、>、>=、list）
-        else if (auto* plusVar = dynamic_cast<PlusVar*>(clos_ptr->e.get())) {
-            return plusVar->evalRator(args);  // + 接收可变参数（vector<Value>）
-        } else if (auto* minusVar = dynamic_cast<MinusVar*>(clos_ptr->e.get())) {
-            return minusVar->evalRator(args);  // - 接收可变参数
-        } else if (auto* multVar = dynamic_cast<MultVar*>(clos_ptr->e.get())) {
-            return multVar->evalRator(args);  // * 接收可变参数
-        } else if (auto* divVar = dynamic_cast<DivVar*>(clos_ptr->e.get())) {
-            return divVar->evalRator(args);  // / 接收可变参数
-        } else if (auto* equalVar = dynamic_cast<EqualVar*>(clos_ptr->e.get())) {
-            return equalVar->evalRator(args);  // = 接收可变参数
-        } else if (auto* lessVar = dynamic_cast<LessVar*>(clos_ptr->e.get())) {
-            return lessVar->evalRator(args);  // < 接收可变参数
-        } else if (auto* lessEqVar = dynamic_cast<LessEqVar*>(clos_ptr->e.get())) {
-            return lessEqVar->evalRator(args);  // <= 接收可变参数
-        } else if (auto* greaterVar = dynamic_cast<GreaterVar*>(clos_ptr->e.get())) {
-            return greaterVar->evalRator(args);  // > 接收可变参数
-        } else if (auto* greaterEqVar = dynamic_cast<GreaterEqVar*>(clos_ptr->e.get())) {
-            return greaterEqVar->evalRator(args);  // >= 接收可变参数
-        } else if (auto* listFunc = dynamic_cast<ListFunc*>(clos_ptr->e.get())) {
-            return listFunc->evalRator(args);  // list 接收可变参数
+        if (args.size() == 0) {
+            if (auto* makeVoid = dynamic_cast<MakeVoid*>(body.get())) {
+                return makeVoid->eval(e);  // MakeVoid无参数，直接调用eval
+            }else if (auto* exitFunc = dynamic_cast<Exit*>(body.get())) {
+                return exitFunc->eval(e);  // Exit无参数，直接调用eval
+            }
+        } else if (args.size() == 1) {
+            // 2. 单参数内置函数（isboolean、isfixnum、null?、pair?、procedure?、symbol?、string?、display、not、null?、pair?、islist、car、cdr）
+            if (auto* isBoolean = dynamic_cast<IsBoolean*>(clos_ptr->e.get())) {
+                return isBoolean->evalRator(args[0]);  // boolean? 接收1个参数
+            } else if (auto* isFixnum = dynamic_cast<IsFixnum*>(clos_ptr->e.get())) {
+                return isFixnum->evalRator(args[0]);  // isfixnum 接收1个参数
+            } else if (auto* isNull = dynamic_cast<IsNull*>(clos_ptr->e.get())) {
+                return isNull->evalRator(args[0]);  // null? 接收1个参数
+            } else if (auto* isPair = dynamic_cast<IsPair*>(clos_ptr->e.get())) {
+                return isPair->evalRator(args[0]);  // pair? 接收1个参数
+            } else if (auto* isProcedure = dynamic_cast<IsProcedure*>(clos_ptr->e.get())) {
+                return isProcedure->evalRator(args[0]);  // procedure? 接收1个参数
+            } else if (auto* isSymbol = dynamic_cast<IsSymbol*>(clos_ptr->e.get())) {
+                return isSymbol->evalRator(args[0]);  // symbol? 接收1个参数
+            } else if (auto* isString = dynamic_cast<IsString*>(clos_ptr->e.get())) {
+                return isString->evalRator(args[0]);  // string? 接收1个参数
+            } else if (auto* displayFunc = dynamic_cast<Display*>(clos_ptr->e.get())) {
+                return displayFunc->evalRator(args[0]);  // display 接收1个参数
+            } else if (auto* notFunc = dynamic_cast<Not*>(clos_ptr->e.get())) {
+                return notFunc->evalRator(args[0]);  // not 接收1个参数
+            } else if (auto* isList = dynamic_cast<IsList*>(clos_ptr->e.get())) {
+                return isList->evalRator(args[0]);  // list? 接收1个参数
+            } else if (auto* carFunc = dynamic_cast<Car*>(clos_ptr->e.get())) {
+                return carFunc->evalRator(args[0]);  // car 接收1个参数
+            } else if (auto* cdrFunc = dynamic_cast<Cdr*>(clos_ptr->e.get())) {
+                return cdrFunc->evalRator(args[0]);  // cdr 接收1个参数
+            }
+        } else if (args.size() == 2) {
+            // 3. 双参数内置函数（modulo、expt、eq?、cons、set-car!、set-cdr!）
+            if (auto* moduloFunc = dynamic_cast<Modulo*>(clos_ptr->e.get())) {
+                return moduloFunc->evalRator(args[0], args[1]);  // modulo 接收2个参数
+            } else if (auto* exptFunc = dynamic_cast<Expt*>(clos_ptr->e.get())) {
+                return exptFunc->evalRator(args[0], args[1]);  // expt 接收2个参数
+            } else if (auto* isEq = dynamic_cast<IsEq*>(clos_ptr->e.get())) {
+                return isEq->evalRator(args[0], args[1]);  // eq? 接收2个参数
+            } else if (auto* consFunc = dynamic_cast<Cons*>(clos_ptr->e.get())) {
+                return consFunc->evalRator(args[0], args[1]);  // cons 接收2个参数
+            } else if (auto* setCar = dynamic_cast<SetCar*>(clos_ptr->e.get())) {
+                return setCar->evalRator(args[0], args[1]);  // set-car! 接收2个参数
+            } else if (auto* setCdr = dynamic_cast<SetCdr*>(clos_ptr->e.get())) {
+                return setCdr->evalRator(args[0], args[1]);  // set-cdr! 接收2个参数
+            }
+        } else {
+            // 4. 可变参数内置函数（+、-、*、/、=、<、<=、>、>=、list）
+            if (auto* plusVar = dynamic_cast<PlusVar*>(clos_ptr->e.get())) {
+                return plusVar->evalRator(args);  // + 接收可变参数（vector<Value>）
+            } else if (auto* minusVar = dynamic_cast<MinusVar*>(clos_ptr->e.get())) {
+                return minusVar->evalRator(args);  // - 接收可变参数
+            } else if (auto* multVar = dynamic_cast<MultVar*>(clos_ptr->e.get())) {
+                return multVar->evalRator(args);  // * 接收可变参数
+            } else if (auto* divVar = dynamic_cast<DivVar*>(clos_ptr->e.get())) {
+                return divVar->evalRator(args);  // / 接收可变参数
+            } else if (auto* equalVar = dynamic_cast<EqualVar*>(clos_ptr->e.get())) {
+                return equalVar->evalRator(args);  // = 接收可变参数
+            } else if (auto* lessVar = dynamic_cast<LessVar*>(clos_ptr->e.get())) {
+                return lessVar->evalRator(args);  // < 接收可变参数
+            } else if (auto* lessEqVar = dynamic_cast<LessEqVar*>(clos_ptr->e.get())) {
+                return lessEqVar->evalRator(args);  // <= 接收可变参数
+            } else if (auto* greaterVar = dynamic_cast<GreaterVar*>(clos_ptr->e.get())) {
+                return greaterVar->evalRator(args);  // > 接收可变参数
+            } else if (auto* greaterEqVar = dynamic_cast<GreaterEqVar*>(clos_ptr->e.get())) {
+                return greaterEqVar->evalRator(args);  // >= 接收可变参数
+            } else if (auto* listFunc = dynamic_cast<ListFunc*>(clos_ptr->e.get())) {
+                return listFunc->evalRator(args);  // list 接收可变参数
+            }
         }
     }
 
